@@ -39,7 +39,7 @@ There are several ways of editing your application.
 
 ```bash
 # Navigate to the project directory
-cd lovable-echo-genesis-main
+cd WebGenerator
 
 # Install dependencies
 npm install
