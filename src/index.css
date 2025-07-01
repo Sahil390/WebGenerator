@@ -1,0 +1,450 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "liga" 1, "kern" 1;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer utilities {
+  /* Enhanced 3D Animation Utilities */
+  .transform-gpu {
+    transform: translate3d(0, 0, 0);
+    will-change: transform;
+  }
+
+  .perspective-1000 {
+    perspective: 1000px;
+  }
+
+  .perspective-500 {
+    perspective: 500px;
+  }
+
+  /* Enhanced hover animations with GPU acceleration */
+  .hover-scale {
+    @apply transition-all duration-500 hover:scale-[1.05] active:scale-[0.95] hover:rotate-1;
+    will-change: transform;
+  }
+
+  .hover-3d {
+    @apply transition-all duration-500 hover:scale-105 hover:-translate-y-2 hover:rotate-1 hover:shadow-2xl;
+    will-change: transform;
+  }
+
+  /* Enhanced Float animations for 3D elements */
+  .animate-float {
+    animation: float 8s ease-in-out infinite;
+    will-change: transform;
+  }
+
+  .animate-float-delayed {
+    animation: float 8s ease-in-out infinite 3s;
+    will-change: transform;
+  }
+
+  .animate-float-slow {
+    animation: float 12s ease-in-out infinite 1.5s;
+    will-change: transform;
+  }
+
+  .animate-bounce-delayed {
+    animation: bounce 1s infinite 0.5s;
+    will-change: transform;
+  }
+
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px) rotate(0deg) scale(1);
+    }
+    25% {
+      transform: translateY(-30px) rotate(5deg) scale(1.05);
+    }
+    50% {
+      transform: translateY(-15px) rotate(-2deg) scale(1.02);
+    }
+    75% {
+      transform: translateY(-25px) rotate(3deg) scale(1.03);
+    }
+  }
+
+  /* Enhanced slide up animations */
+  .animate-slide-up {
+    animation: slideUp 1.2s ease-out;
+    will-change: transform, opacity;
+  }
+
+  .animate-slide-up-delayed {
+    animation: slideUp 1.2s ease-out 0.3s both;
+    will-change: transform, opacity;
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(80px) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  /* Enhanced fade in animations */
+  .animate-fade-in {
+    animation: fadeIn 1s ease-out;
+    will-change: opacity, transform;
+  }
+
+  .animate-fade-in-delayed {
+    animation: fadeIn 1s ease-out 0.4s both;
+    will-change: opacity, transform;
+  }
+
+  .animate-fade-in-up {
+    animation: fadeInUp 1.2s ease-out;
+    will-change: opacity, transform;
+  }
+
+  .animate-fade-in-up-delayed {
+    animation: fadeInUp 1.2s ease-out 0.6s both;
+    will-change: opacity, transform;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(50px) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  /* Enhanced spinning animations */
+  .animate-spin-slow {
+    animation: spin 30s linear infinite;
+  }
+
+  .animate-spin-reverse {
+    animation: spin 25s linear infinite reverse;
+  }
+
+  /* Enhanced pulse scale animation */
+  .animate-pulse-scale {
+    animation: pulseScale 3s ease-in-out infinite;
+    will-change: transform, opacity;
+  }
+
+  @keyframes pulseScale {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 0.8;
+    }
+    50% {
+      transform: scale(1.1);
+      opacity: 1;
+    }
+  }
+
+  /* Enhanced progress bar animation */
+  .animate-progress {
+    animation: progress 2s ease-in-out infinite;
+    will-change: width;
+  }
+
+  @keyframes progress {
+    0% {
+      width: 0%;
+    }
+    50% {
+      width: 70%;
+    }
+    100% {
+      width: 60%;
+    }
+  }
+
+  /* Enhanced gradient text animation */
+  .animate-gradient {
+    background: linear-gradient(-45deg, #000000, #434343, #000000, #666666, #000000);
+    background-size: 400% 400%;
+    animation: gradient 4s ease infinite;
+    will-change: background-position;
+  }
+
+  .dark .animate-gradient {
+    background: linear-gradient(-45deg, #ffffff, #d1d5db, #ffffff, #9ca3af, #ffffff);
+    background-size: 400% 400%;
+  }
+
+  @keyframes gradient {
+    0% {
+      background-position: 0% 50%;
+    }
+    25% {
+      background-position: 100% 50%;
+    }
+    50% {
+      background-position: 100% 100%;
+    }
+    75% {
+      background-position: 50% 100%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+
+  /* Enhanced subtle pulse for loading states */
+  .animate-subtle-pulse {
+    animation: subtlePulse 3s ease-in-out infinite;
+    will-change: opacity, transform;
+  }
+
+  @keyframes subtlePulse {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.7;
+      transform: scale(1.02);
+    }
+  }
+
+  /* Enhanced 3D Card hover effects */
+  .card-3d {
+    @apply transition-all duration-500 hover:scale-105 hover:-translate-y-4;
+    transform-style: preserve-3d;
+    will-change: transform;
+  }
+
+  .card-3d:hover {
+    transform: translateY(-16px) rotateX(15deg) rotateY(-5deg) scale(1.05);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  }
+
+  .dark .card-3d:hover {
+    box-shadow: 0 25px 50px -12px rgba(255, 255, 255, 0.1);
+  }
+
+  /* Enhanced glowing border animation */
+  .animate-glow {
+    animation: glow 2s ease-in-out infinite alternate;
+    will-change: box-shadow;
+  }
+
+  @keyframes glow {
+    from {
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    }
+    to {
+      box-shadow: 0 0 30px rgba(0, 0, 0, 0.2), 0 0 40px rgba(0, 0, 0, 0.1);
+    }
+  }
+
+  .dark .animate-glow {
+    animation: glowDark 2s ease-in-out infinite alternate;
+  }
+
+  @keyframes glowDark {
+    from {
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+    }
+    to {
+      box-shadow: 0 0 30px rgba(255, 255, 255, 0.2), 0 0 40px rgba(255, 255, 255, 0.1);
+    }
+  }
+
+  /* New morphing animations */
+  .animate-morph {
+    animation: morph 8s ease-in-out infinite;
+    will-change: border-radius;
+  }
+
+  @keyframes morph {
+    0%, 100% {
+      border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+    }
+    50% {
+      border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%;
+    }
+  }
+
+  /* Enhanced text reveal animation */
+  .animate-text-reveal {
+    animation: textReveal 1.5s ease-out;
+    will-change: opacity, transform;
+  }
+
+  @keyframes textReveal {
+    0% {
+      opacity: 0;
+      transform: translateY(100%) scale(1.1);
+    }
+    60% {
+      opacity: 0.8;
+      transform: translateY(-10%) scale(1.05);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  /* Backdrop blur utilities */
+  .backdrop-blur-strong {
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+  }
+}
+
+/* Enhanced custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.dark::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.dark::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+/* Selection styling */
+::selection {
+  background: rgba(0, 0, 0, 0.1);
+  color: inherit;
+}
+
+.dark ::selection {
+  background: rgba(255, 255, 255, 0.1);
+  color: inherit;
+}
+
+/* Focus improvements */
+*:focus-visible {
+  outline: 2px solid rgba(0, 0, 0, 0.3);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.dark *:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.3);
+}
