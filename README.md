@@ -158,15 +158,41 @@ lovable-echo-genesis-main/
 
 ## 🚀 Deployment
 
-### Frontend (Vite)
+### Netlify Deployment (Recommended)
+
+This project is optimized for Netlify deployment with serverless functions:
+
+1. **Build the project**:
 ```bash
 npm run build
 ```
 
-### Backend (Node.js)
+2. **Deploy to Netlify**:
+   - Connect your repository to Netlify
+   - Set build command: `npm run build`
+   - Set publish directory: `dist`
+   - Add environment variables in Netlify dashboard:
+     - `GEMINI_API_KEY`: Your Gemini API key
+
+3. **Environment Variables**:
+   In your Netlify dashboard, add:
+   ```env
+   GEMINI_API_KEY=your_production_api_key
+   ```
+
+### Alternative: Separate Frontend/Backend Deployment
+
+#### Frontend (Vite)
 ```bash
-npm run server
+npm run build
 ```
+
+#### Backend (Node.js)
+Deploy the Express server to platforms like:
+- Railway
+- Heroku
+- Vercel
+- DigitalOcean
 
 ### Environment Variables for Production
 ```env
@@ -207,6 +233,17 @@ This project is open source and available under the [MIT License](LICENSE).
 **"Port already in use"**
 - Change the PORT in your `.env` file
 - Kill any processes using the default ports
+
+**"Backend not working on Netlify"**
+- Ensure you've set the `GEMINI_API_KEY` environment variable in Netlify dashboard
+- Check Netlify function logs for errors
+- Verify the API calls are going to `/api/` endpoints (not localhost)
+- Make sure `netlify.toml` is in your project root
+
+**"Netlify Functions failing"**
+- Check the function logs in Netlify dashboard
+- Ensure the Gemini API key is valid and has proper permissions
+- Verify the build includes the `@google/generative-ai` package
 
 ## 📞 Support
 

@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "server": "node server/index.js",
-    "dev:full": "concurrently \"npm run dev\" \"npm run server\""
+    "dev:full": "concurrently \"npm run dev\" \"npm run server\"",
+    "deploy:netlify": "npm run build && echo 'Build complete! Ready for Netlify deployment.'"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
