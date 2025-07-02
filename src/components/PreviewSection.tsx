@@ -70,8 +70,76 @@ const PreviewSection = ({ generatedSite, isGenerating, onPreview, onExport, onSh
     }
   }, [generatedSite]);
 
+  // Process the HTML to make it safer for iframe preview
+  const getSafeHtml = (html: string) => {
+    if (!html) return '';
+    
+    // Remove or modify potentially problematic elements
+    let safeHtml = html
+      // Remove any existing base tags that might affect navigation
+      .replace(/<base[^>]*>/gi, '')
+      // Remove or neutralize form submissions
+      .replace(/<form[^>]*>/gi, '<form onsubmit="event.preventDefault(); return false;">')
+      // Modify all links to prevent navigation
+      .replace(/<a\s+([^>]*href\s*=\s*["'][^"']*["'][^>]*)>/gi, '<a $1 onclick="event.preventDefault(); return false;" target="_self">')
+      // Remove any window.location or document.location changes
+      .replace(/window\.location\s*[=\.]/gi, '// window.location')
+      .replace(/document\.location\s*[=\.]/gi, '// document.location')
+      // Remove any window.open calls
+      .replace(/window\.open\s*\(/gi, '// window.open(')
+      // Add prevention script at the beginning of body
+      .replace(/<body([^>]*)>/i, `<body$1>
+        <script>
+          // Prevent all navigation attempts
+          if (typeof window !== 'undefined') {
+            window.addEventListener('beforeunload', function(e) {
+              e.preventDefault();
+              e.returnValue = '';
+            });
+            
+            // Override navigation methods
+            const originalOpen = window.open;
+            window.open = function() { return null; };
+            
+            // Prevent form submissions from navigating
+            document.addEventListener('submit', function(e) {
+              e.preventDefault();
+              return false;
+            });
+            
+            // Prevent link clicks from navigating
+            document.addEventListener('click', function(e) {
+              if (e.target.tagName === 'A' || e.target.closest('a')) {
+                e.preventDefault();
+                return false;
+              }
+            });
+          }
+        </script>`)
+      // Add a base tag to prevent relative URL navigation
+      .replace(/<head>/i, '<head><base href="javascript:void(0);">');
+    
+    return safeHtml;
+  };
+
   const handleIframeLoad = () => {
     setIframeLoaded(true);
+    
+    // Additional security: Try to prevent navigation in the iframe
+    try {
+      const iframe = document.querySelector(`iframe[title="Preview of ${generatedSite?.title}"]`) as HTMLIFrameElement;
+      if (iframe && iframe.contentWindow) {
+        // Override window.open and location changes in the iframe
+        iframe.contentWindow.addEventListener('beforeunload', (e) => {
+          e.preventDefault();
+          e.returnValue = '';
+          return '';
+        });
+      }
+    } catch (error) {
+      // Silently fail - cross-origin restrictions expected
+      console.log('Cross-origin iframe access restricted (expected)');
+    }
   };
 
   if (isGenerating) {
@@ -231,10 +299,10 @@ const PreviewSection = ({ generatedSite, isGenerating, onPreview, onExport, onSh
           
           <iframe
             key={iframeKey}
-            srcDoc={generatedSite.html}
+            srcDoc={getSafeHtml(generatedSite.html)}
             className="w-full h-full border-0"
             title={`Preview of ${generatedSite.title}`}
-            sandbox="allow-scripts allow-same-origin allow-forms"
+            sandbox="allow-scripts allow-same-origin"
             loading="lazy"
             onLoad={handleIframeLoad}
             style={{ 

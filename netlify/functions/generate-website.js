@@ -142,20 +142,28 @@ Requirements:
 2. Include comprehensive CSS styling (embedded in <style> tags)
 3. Make it fully responsive and mobile-friendly
 4. Use modern CSS techniques (flexbox, grid, etc.)
-5. Include interactive JavaScript features where appropriate
+5. Include interactive JavaScript features where appropriate (but NO navigation or window.location changes)
 6. Use semantic HTML elements
 7. Ensure accessibility with proper ARIA labels
 8. Include meta tags for SEO
 9. Use a cohesive color scheme and typography
 10. Make it visually appealing and professional
 
+IMPORTANT CONSTRAINTS:
+- Do NOT include any links that navigate to external sites
+- Do NOT include any JavaScript that changes window.location or document.location
+- Do NOT include any window.open() calls
+- Make all links either non-functional (#) or use onclick="return false;"
+- Do NOT include any form submissions that navigate away
+- This is for a PREVIEW ONLY - no actual navigation should occur
+
 The website should be complete and ready to use. Include:
-- Header with navigation
+- Header with navigation (but make nav links non-functional for preview)
 - Main content sections
 - Footer
 - Responsive design
 - Professional styling
-- Interactive elements
+- Interactive elements (hover effects, animations, etc.)
 - Modern animations and transitions
 
 Return ONLY the complete HTML code without any markdown formatting or explanations.`;
