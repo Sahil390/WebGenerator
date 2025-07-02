@@ -1,9 +1,6 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-// Initialize Gemini AI
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
-export const handler = async (event, context) => {
+exports.handler = async (event, context) => {
   // Enable CORS
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -32,6 +29,14 @@ export const handler = async (event, context) => {
 
   try {
     console.log('🔥 Received website generation request');
+    console.log('Environment check:', {
+      hasApiKey: !!process.env.GEMINI_API_KEY,
+      httpMethod: event.httpMethod,
+      bodyExists: !!event.body
+    });
+    
+    // Initialize Gemini AI inside try block
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     
     // Check if API key is configured
     if (!process.env.GEMINI_API_KEY) {
@@ -42,13 +47,29 @@ export const handler = async (event, context) => {
         body: JSON.stringify({
           success: false,
           error: 'Gemini API key not configured',
-          details: 'Please set the GEMINI_API_KEY environment variable'
+          details: 'Please set the GEMINI_API_KEY environment variable in Netlify dashboard'
         })
       };
     }
 
-    // Parse request body
-    const { prompt } = JSON.parse(event.body || '{}');
+    // Parse request body with better error handling
+    let parsedBody;
+    try {
+      parsedBody = JSON.parse(event.body || '{}');
+    } catch (parseError) {
+      console.error('❌ Failed to parse request body:', parseError);
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          error: 'Invalid JSON in request body',
+          details: parseError.message
+        })
+      };
+    }
+
+    const { prompt } = parsedBody;
     
     if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
       return {
@@ -64,16 +85,31 @@ export const handler = async (event, context) => {
 
     console.log('📝 Generating website for prompt:', prompt.substring(0, 100) + '...');
 
-    // Get the generative model
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
-      generationConfig: {
-        temperature: 0.7,
-        topP: 0.8,
-        topK: 40,
-        maxOutputTokens: 8192,
-      }
-    });
+    // Get the generative model with error handling
+    let model;
+    try {
+      model = genAI.getGenerativeModel({ 
+        model: "gemini-1.5-flash",
+        generationConfig: {
+          temperature: 0.7,
+          topP: 0.8,
+          topK: 40,
+          maxOutputTokens: 8192,
+        }
+      });
+      console.log('✅ Model initialized successfully');
+    } catch (modelError) {
+      console.error('❌ Failed to initialize model:', modelError);
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          error: 'Failed to initialize AI model',
+          details: modelError.message
+        })
+      };
+    }
 
     // Enhanced prompt for better website generation
     const enhancedPrompt = `
@@ -102,11 +138,19 @@ The website should be complete and ready to use. Include:
 
 Return ONLY the complete HTML code without any markdown formatting or explanations.`;
 
+    console.log('🚀 Starting content generation...');
     const result = await model.generateContent(enhancedPrompt);
+    
+    console.log('📨 Getting response...');
     const response = await result.response;
+    
+    console.log('📄 Extracting text...');
     let generatedHTML = response.text();
 
-    console.log('✅ Website generated successfully');
+    console.log('✅ Website generated successfully', {
+      htmlLength: generatedHTML.length,
+      hasHtmlTag: generatedHTML.includes('<html')
+    });
 
     // Clean up the generated HTML
     generatedHTML = generatedHTML.replace(/```html\n?/g, '').replace(/```\n?/g, '').trim();
@@ -134,7 +178,11 @@ Return ONLY the complete HTML code without any markdown formatting or explanatio
     };
 
   } catch (error) {
-    console.error('💥 Error generating website:', error);
+    console.error('💥 Error generating website:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
     
     return {
       statusCode: 500,
@@ -142,7 +190,8 @@ Return ONLY the complete HTML code without any markdown formatting or explanatio
       body: JSON.stringify({
         success: false,
         error: 'Failed to generate website',
-        details: error.message || 'Unknown error occurred'
+        details: error.message || 'Unknown error occurred',
+        errorType: error.name || 'UnknownError'
       })
     };
   }
