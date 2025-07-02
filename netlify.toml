@@ -2,6 +2,12 @@
   publish = "dist"
   command = "npm run build"
 
+[build.environment]
+  NODE_VERSION = "18"
+  SECRETS_SCAN_ENABLED = "true"
+  SECRETS_SCAN_OMIT_PATHS = "netlify/functions/**,.env*,node_modules/**,*.log"
+  SECRETS_SCAN_OMIT_KEYS = "GEMINI_API_KEY"
+
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
@@ -17,6 +23,3 @@
     Access-Control-Allow-Origin = "*"
     Access-Control-Allow-Headers = "Content-Type"
     Access-Control-Allow-Methods = "GET, POST, OPTIONS"
-
-[build.environment]
-  NODE_VERSION = "18"
