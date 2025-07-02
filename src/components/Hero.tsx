@@ -63,11 +63,11 @@ const Hero = () => {
           </p>
           
           {/* Enhanced CTA Buttons with improved styling */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-8 mb-20 animate-fade-in-up-delayed">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-8 mb-32 animate-fade-in-up-delayed relative z-10">
             <Button 
               onClick={() => scrollToSection('generator')}
               size="lg" 
-              className="bg-gradient-to-r from-black via-gray-800 to-black dark:from-white dark:via-gray-200 dark:to-white hover:from-gray-800 hover:via-black hover:to-gray-800 dark:hover:from-gray-200 dark:hover:via-white dark:hover:to-gray-200 text-white dark:text-black px-12 py-6 text-xl font-bold rounded-2xl hover-scale group transform hover:-translate-y-2 shadow-2xl hover:shadow-3xl transition-all duration-500 border-2 border-transparent hover:border-gray-300 dark:hover:border-gray-700 backdrop-blur-sm"
+              className="bg-gradient-to-r from-black/90 via-gray-800/90 to-black/90 dark:from-white/90 dark:via-gray-200/90 dark:to-white/90 hover:from-gray-800/95 hover:via-black/95 hover:to-gray-800/95 dark:hover:from-gray-200/95 dark:hover:via-white/95 dark:hover:to-gray-200/95 text-white dark:text-black px-12 py-6 text-xl font-bold rounded-2xl hover-scale group transform hover:-translate-y-2 shadow-2xl hover:shadow-3xl transition-all duration-500 border-2 border-transparent hover:border-gray-300 dark:hover:border-gray-700 backdrop-blur-sm"
             >
               Start Creating
               <ArrowRight className="ml-3 w-6 h-6 group-hover:translate-x-2 group-hover:scale-110 transition-all duration-300" />
@@ -76,34 +76,34 @@ const Hero = () => {
             <Button 
               variant="ghost" 
               size="lg" 
-              className="text-gray-700 dark:text-gray-300 hover:text-black dark:hover:text-white hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100 dark:hover:from-gray-800 dark:hover:to-gray-700 px-12 py-6 text-xl font-bold rounded-2xl hover-scale group transform hover:-translate-y-2 transition-all duration-500 border-2 border-gray-200 dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-500 shadow-lg hover:shadow-2xl backdrop-blur-sm"
+              className="text-gray-700 dark:text-gray-300 hover:text-black dark:hover:text-white hover:bg-gradient-to-r hover:from-gray-50/80 hover:to-gray-100/80 dark:hover:from-gray-800/80 dark:hover:to-gray-700/80 px-12 py-6 text-xl font-bold rounded-2xl hover-scale group transform hover:-translate-y-2 transition-all duration-500 border-2 border-gray-200/70 dark:border-gray-700/70 hover:border-gray-400/80 dark:hover:border-gray-500/80 shadow-lg hover:shadow-2xl backdrop-blur-sm bg-white/20 dark:bg-gray-900/20"
             >
               <Play className="mr-3 w-6 h-6 group-hover:scale-110 transition-transform duration-300" />
               Watch Demo
             </Button>
           </div>
+        </div>
+        
+        {/* Enhanced 3D Grid Pattern with improved visual hierarchy - moved below buttons */}
+        <div className="relative mt-16">
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-[600px] h-[600px] border-2 border-gray-200 dark:border-gray-700 rounded-full opacity-20 animate-spin-slow shadow-inner"></div>
+            <div className="absolute w-[480px] h-[480px] border-2 border-gray-300 dark:border-gray-600 rounded-full opacity-30 animate-spin-reverse shadow-lg"></div>
+            <div className="absolute w-80 h-80 border-2 border-gray-400 dark:border-gray-500 rounded-full opacity-40 animate-spin-slow shadow-md"></div>
+            <div className="absolute w-48 h-48 border-2 border-gray-500 dark:border-gray-400 rounded-full opacity-50 animate-spin-reverse"></div>
+            <div className="absolute w-24 h-24 border-2 border-gray-600 dark:border-gray-300 rounded-full opacity-60 animate-spin-slow"></div>
+          </div>
           
-          {/* Enhanced 3D Grid Pattern with improved visual hierarchy */}
-          <div className="relative mt-32">
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-[600px] h-[600px] border-2 border-gray-200 dark:border-gray-700 rounded-full opacity-20 animate-spin-slow shadow-inner"></div>
-              <div className="absolute w-[480px] h-[480px] border-2 border-gray-300 dark:border-gray-600 rounded-full opacity-30 animate-spin-reverse shadow-lg"></div>
-              <div className="absolute w-80 h-80 border-2 border-gray-400 dark:border-gray-500 rounded-full opacity-40 animate-spin-slow shadow-md"></div>
-              <div className="absolute w-48 h-48 border-2 border-gray-500 dark:border-gray-400 rounded-full opacity-50 animate-spin-reverse"></div>
-              <div className="absolute w-24 h-24 border-2 border-gray-600 dark:border-gray-300 rounded-full opacity-60 animate-spin-slow"></div>
-            </div>
-            
-            {/* Enhanced central glow effect */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-12 h-12 bg-gradient-to-r from-black via-gray-600 to-black dark:from-white dark:via-gray-300 dark:to-white rounded-full animate-pulse shadow-2xl"></div>
-              <div className="absolute w-6 h-6 bg-white dark:bg-black rounded-full animate-subtle-pulse"></div>
-            </div>
-            
-            {/* Additional orbital elements */}
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="absolute w-2 h-2 bg-black dark:bg-white rounded-full animate-spin-slow" style={{ transform: 'translateX(200px)', animationDuration: '20s' }}></div>
-              <div className="absolute w-1 h-1 bg-gray-600 dark:bg-gray-400 rounded-full animate-spin-reverse" style={{ transform: 'translateX(-150px)', animationDuration: '15s' }}></div>
-            </div>
+          {/* Enhanced central glow effect */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-12 h-12 bg-gradient-to-r from-black via-gray-600 to-black dark:from-white dark:via-gray-300 dark:to-white rounded-full animate-pulse shadow-2xl"></div>
+            <div className="absolute w-6 h-6 bg-white dark:bg-black rounded-full animate-subtle-pulse"></div>
+          </div>
+          
+          {/* Additional orbital elements */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="absolute w-2 h-2 bg-black dark:bg-white rounded-full animate-spin-slow" style={{ transform: 'translateX(200px)', animationDuration: '20s' }}></div>
+            <div className="absolute w-1 h-1 bg-gray-600 dark:bg-gray-400 rounded-full animate-spin-reverse" style={{ transform: 'translateX(-150px)', animationDuration: '15s' }}></div>
           </div>
         </div>
       </div>
