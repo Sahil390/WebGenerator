@@ -31,14 +31,13 @@ exports.handler = async (event, context) => {
     console.log('🔥 Received website generation request');
     console.log('Environment check:', {
       hasApiKey: !!process.env.GEMINI_API_KEY,
+      apiKeyLength: process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.length : 0,
       httpMethod: event.httpMethod,
-      bodyExists: !!event.body
+      bodyExists: !!event.body,
+      nodeVersion: process.version
     });
     
-    // Initialize Gemini AI inside try block
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    
-    // Check if API key is configured
+    // Check if API key is configured first
     if (!process.env.GEMINI_API_KEY) {
       console.error('❌ Gemini API key not configured');
       return {
@@ -56,6 +55,10 @@ exports.handler = async (event, context) => {
     let parsedBody;
     try {
       parsedBody = JSON.parse(event.body || '{}');
+      console.log('📝 Parsed body:', { 
+        promptExists: !!parsedBody.prompt,
+        promptLength: parsedBody.prompt?.length || 0 
+      });
     } catch (parseError) {
       console.error('❌ Failed to parse request body:', parseError);
       return {
@@ -72,6 +75,7 @@ exports.handler = async (event, context) => {
     const { prompt } = parsedBody;
     
     if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
+      console.error('❌ Invalid prompt:', { prompt, type: typeof prompt });
       return {
         statusCode: 400,
         headers,
@@ -84,6 +88,24 @@ exports.handler = async (event, context) => {
     }
 
     console.log('📝 Generating website for prompt:', prompt.substring(0, 100) + '...');
+
+    // Initialize Gemini AI with better error handling
+    let genAI;
+    try {
+      genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+      console.log('✅ Gemini AI initialized');
+    } catch (initError) {
+      console.error('❌ Failed to initialize Gemini AI:', initError);
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          error: 'Failed to initialize AI service',
+          details: initError.message
+        })
+      };
+    }
 
     // Get the generative model with error handling
     let model;
@@ -139,18 +161,58 @@ The website should be complete and ready to use. Include:
 Return ONLY the complete HTML code without any markdown formatting or explanations.`;
 
     console.log('🚀 Starting content generation...');
-    const result = await model.generateContent(enhancedPrompt);
+    let result, response, generatedHTML;
     
-    console.log('📨 Getting response...');
-    const response = await result.response;
+    try {
+      result = await model.generateContent(enhancedPrompt);
+      console.log('📨 Got result from Gemini');
+    } catch (generateError) {
+      console.error('❌ Gemini API call failed:', generateError);
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          error: 'AI generation failed',
+          details: generateError.message || 'Failed to call Gemini API'
+        })
+      };
+    }
     
-    console.log('📄 Extracting text...');
-    let generatedHTML = response.text();
-
-    console.log('✅ Website generated successfully', {
-      htmlLength: generatedHTML.length,
-      hasHtmlTag: generatedHTML.includes('<html')
-    });
+    try {
+      response = await result.response;
+      console.log('📨 Got response from result');
+    } catch (responseError) {
+      console.error('❌ Failed to get response:', responseError);
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          error: 'Failed to process AI response',
+          details: responseError.message
+        })
+      };
+    }
+    
+    try {
+      generatedHTML = response.text();
+      console.log('📄 Extracted text successfully', {
+        htmlLength: generatedHTML.length,
+        hasHtmlTag: generatedHTML.includes('<html')
+      });
+    } catch (textError) {
+      console.error('❌ Failed to extract text:', textError);
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          error: 'Failed to extract generated content',
+          details: textError.message
+        })
+      };
+    }
 
     // Clean up the generated HTML
     generatedHTML = generatedHTML.replace(/```html\n?/g, '').replace(/```\n?/g, '').trim();
