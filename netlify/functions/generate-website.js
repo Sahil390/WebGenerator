@@ -135,7 +135,7 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Get the generative model with error handling
+    // Get the generative model with optimized settings for faster response
     let model;
     try {
       model = genAI.getGenerativeModel({ 
@@ -144,7 +144,7 @@ exports.handler = async (event, context) => {
           temperature: 0.7,
           topP: 0.8,
           topK: 40,
-          maxOutputTokens: 8192,
+          maxOutputTokens: 4096, // Reduced from 8192 for faster response
         }
       });
       console.log('✅ Model initialized successfully');
@@ -161,54 +161,33 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Enhanced prompt for better website generation
+    // Shorter, more focused prompt for faster generation
     const enhancedPrompt = `
-Create a complete, modern, responsive HTML website based on this description: "${prompt}"
+Create a modern, responsive HTML website for: "${prompt}"
 
 Requirements:
-1. Generate a COMPLETE HTML document with proper structure
-2. Include comprehensive CSS styling (embedded in <style> tags)
-3. Make it fully responsive and mobile-friendly
-4. Use modern CSS techniques (flexbox, grid, etc.)
-5. Include interactive JavaScript features where appropriate (but NO navigation or window.location changes)
-6. Use semantic HTML elements
-7. Ensure accessibility with proper ARIA labels
-8. Include meta tags for SEO
-9. Use a cohesive color scheme and typography
-10. Make it visually appealing and professional
-
-IMPORTANT CONSTRAINTS:
-- Do NOT include any links that navigate to external sites
-- Do NOT include any JavaScript that changes window.location or document.location
-- Do NOT include any window.open() calls
-- Make all links either non-functional (#) or use onclick="return false;"
-- Do NOT include any form submissions that navigate away
-- This is for a PREVIEW ONLY - no actual navigation should occur
-
-The website should be complete and ready to use. Include:
-- Header with navigation (but make nav links non-functional for preview)
-- Main content sections
-- Footer
+- Complete HTML document with embedded CSS
 - Responsive design
 - Professional styling
-- Interactive elements (hover effects, animations, etc.)
-- Modern animations and transitions
+- NO external links or navigation
+- NO JavaScript that navigates away
+- Keep it concise but functional
 
-Return ONLY the complete HTML code without any markdown formatting or explanations.`;
+Return ONLY the HTML code.`;
 
     console.log('🚀 Starting content generation...');
     let result, response, generatedHTML;
     
-    // Use retry logic for Gemini API call with timeout
+    // Use retry logic for Gemini API call with shorter timeout
     try {
       const generateWithRetry = async () => {
         return await withTimeout(
           model.generateContent(enhancedPrompt),
-          45000 // 45 second timeout
+          30000 // Reduced to 30 second timeout
         );
       };
       
-      result = await retryOperation(generateWithRetry, 2, 2000);
+      result = await retryOperation(generateWithRetry, 1, 1000); // Reduced to 1 retry
       console.log('📨 Got result from Gemini');
     } catch (generateError) {
       console.error('❌ Gemini API call failed after retries:', generateError);
@@ -221,7 +200,7 @@ Return ONLY the complete HTML code without any markdown formatting or explanatio
           body: JSON.stringify({
             success: false,
             error: 'Request timeout',
-            details: 'The AI service took too long to respond. Please try with a shorter prompt or try again later.',
+            details: 'The AI service is taking too long. Please try with a shorter, more specific prompt.',
             errorType: 'TimeoutError'
           })
         };
