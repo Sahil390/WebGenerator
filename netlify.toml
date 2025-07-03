@@ -12,6 +12,15 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
+[functions."generate-website"]
+  timeout = 60
+
+[functions."health"]
+  timeout = 10
+
+[functions."test"]  
+  timeout = 10
+
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"

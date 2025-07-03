@@ -1,6 +1,34 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
+// Helper function to create timeout promise
+const withTimeout = (promise, timeoutMs) => {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => 
+      setTimeout(() => reject(new Error(`Operation timed out after ${timeoutMs}ms`)), timeoutMs)
+    )
+  ]);
+};
+
+// Helper function for retry logic
+const retryOperation = async (operation, maxRetries = 2, delay = 1000) => {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      console.log(`Attempt ${attempt} failed:`, error.message);
+      if (attempt === maxRetries) {
+        throw error;
+      }
+      await new Promise(resolve => setTimeout(resolve, delay * attempt));
+    }
+  }
+};
+
 exports.handler = async (event, context) => {
+  // Set function timeout context
+  context.callbackWaitsForEmptyEventLoop = false;
+  
   // Enable CORS
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -171,34 +199,75 @@ Return ONLY the complete HTML code without any markdown formatting or explanatio
     console.log('🚀 Starting content generation...');
     let result, response, generatedHTML;
     
+    // Use retry logic for Gemini API call with timeout
     try {
-      result = await model.generateContent(enhancedPrompt);
+      const generateWithRetry = async () => {
+        return await withTimeout(
+          model.generateContent(enhancedPrompt),
+          45000 // 45 second timeout
+        );
+      };
+      
+      result = await retryOperation(generateWithRetry, 2, 2000);
       console.log('📨 Got result from Gemini');
     } catch (generateError) {
-      console.error('❌ Gemini API call failed:', generateError);
+      console.error('❌ Gemini API call failed after retries:', generateError);
+      
+      // Check if it's a timeout error
+      if (generateError.message.includes('timed out')) {
+        return {
+          statusCode: 502,
+          headers,
+          body: JSON.stringify({
+            success: false,
+            error: 'Request timeout',
+            details: 'The AI service took too long to respond. Please try with a shorter prompt or try again later.',
+            errorType: 'TimeoutError'
+          })
+        };
+      }
+      
+      // Check if it's a rate limit error
+      if (generateError.message.includes('rate limit') || generateError.message.includes('quota')) {
+        return {
+          statusCode: 429,
+          headers,
+          body: JSON.stringify({
+            success: false,
+            error: 'Rate limit exceeded',
+            details: 'The AI service is currently busy. Please try again in a few moments.',
+            errorType: 'RateLimitError'
+          })
+        };
+      }
+      
       return {
-        statusCode: 500,
+        statusCode: 502,
         headers,
         body: JSON.stringify({
           success: false,
           error: 'AI generation failed',
-          details: generateError.message || 'Failed to call Gemini API'
+          details: generateError.message || 'Failed to call Gemini API',
+          errorType: generateError.name || 'ApiError'
         })
       };
     }
     
     try {
-      response = await result.response;
+      response = await withTimeout(result.response, 10000); // 10 second timeout for response processing
       console.log('📨 Got response from result');
     } catch (responseError) {
       console.error('❌ Failed to get response:', responseError);
       return {
-        statusCode: 500,
+        statusCode: 502,
         headers,
         body: JSON.stringify({
           success: false,
           error: 'Failed to process AI response',
-          details: responseError.message
+          details: responseError.message.includes('timed out') 
+            ? 'Response processing timed out. Please try again.' 
+            : responseError.message,
+          errorType: responseError.message.includes('timed out') ? 'TimeoutError' : 'ResponseError'
         })
       };
     }
@@ -254,14 +323,30 @@ Return ONLY the complete HTML code without any markdown formatting or explanatio
       name: error.name
     });
     
+    // Determine appropriate status code based on error
+    let statusCode = 500;
+    let errorType = error.name || 'UnknownError';
+    
+    if (error.message.includes('timed out') || error.message.includes('timeout')) {
+      statusCode = 502;
+      errorType = 'TimeoutError';
+    } else if (error.message.includes('rate limit') || error.message.includes('quota')) {
+      statusCode = 429;
+      errorType = 'RateLimitError';
+    } else if (error.message.includes('network') || error.message.includes('ENOTFOUND')) {
+      statusCode = 502;
+      errorType = 'NetworkError';
+    }
+    
     return {
-      statusCode: 500,
+      statusCode,
       headers,
       body: JSON.stringify({
         success: false,
         error: 'Failed to generate website',
         details: error.message || 'Unknown error occurred',
-        errorType: error.name || 'UnknownError'
+        errorType,
+        timestamp: new Date().toISOString()
       })
     };
   }

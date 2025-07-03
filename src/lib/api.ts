@@ -62,7 +62,27 @@ class ApiService {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         console.error('❌ API Error:', errorData);
-        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        
+        // Create a more descriptive error message based on status code
+        let errorMessage = errorData.error || `HTTP error! status: ${response.status}`;
+        
+        if (response.status === 502) {
+          if (errorData.errorType === 'TimeoutError') {
+            errorMessage = 'Request timed out. Please try with a shorter prompt or try again later.';
+          } else {
+            errorMessage = 'Server temporarily unavailable. Please try again in a moment.';
+          }
+        } else if (response.status === 429) {
+          errorMessage = 'Too many requests. Please wait a moment and try again.';
+        } else if (response.status === 500) {
+          errorMessage = 'Internal server error. Please try again or contact support.';
+        }
+        
+        const error = new Error(errorMessage);
+        (error as any).status = response.status;
+        (error as any).errorType = errorData.errorType;
+        (error as any).details = errorData.details;
+        throw error;
       }
 
       const data = await response.json();

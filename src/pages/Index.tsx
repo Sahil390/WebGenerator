@@ -41,9 +41,36 @@ const Index = () => {
       }
     } catch (error) {
       console.error("Error generating website:", error);
+      
+      // Provide more specific error messages based on error type
+      let title = "Generation Failed";
+      let description = "Failed to generate website. Please try again.";
+      
+      if (error instanceof Error) {
+        const errorStatus = (error as any).status;
+        const errorType = (error as any).errorType;
+        
+        if (errorStatus === 502) {
+          title = "Request Timeout";
+          if (errorType === 'TimeoutError') {
+            description = "The request took too long. Try using a shorter, more specific prompt.";
+          } else {
+            description = "Server is temporarily unavailable. Please try again in a moment.";
+          }
+        } else if (errorStatus === 429) {
+          title = "Too Many Requests";
+          description = "Please wait a moment before trying again.";
+        } else if (errorStatus === 500) {
+          title = "Server Error";
+          description = "Internal server error. Please try again later.";
+        } else {
+          description = error.message;
+        }
+      }
+      
       toast({
-        title: "Generation Failed",
-        description: error instanceof Error ? error.message : "Failed to generate website. Please try again.",
+        title,
+        description,
         variant: "destructive",
       });
     } finally {
