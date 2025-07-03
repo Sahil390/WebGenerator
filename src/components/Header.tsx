@@ -55,10 +55,10 @@ const Header = () => {
               <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-black to-gray-600 dark:from-white dark:to-gray-300 transition-all duration-300 group-hover:w-full shadow-sm"></span>
             </button>
             <button 
-              onClick={() => scrollToSection('examples')}
+              onClick={() => scrollToSection('about')}
               className="text-gray-700 dark:text-gray-300 hover:text-black dark:hover:text-white transition-all duration-300 font-semibold relative group py-2"
             >
-              Examples
+              About
               <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-black to-gray-600 dark:from-white dark:to-gray-300 transition-all duration-300 group-hover:w-full shadow-sm"></span>
             </button>
           </nav>

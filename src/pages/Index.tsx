@@ -5,6 +5,7 @@ import Hero from "@/components/Hero";
 import GeneratorSection from "@/components/GeneratorSection";
 import PreviewSection from "@/components/PreviewSection";
 import FeatureGrid from "@/components/FeatureGrid";
+import AboutUs from "@/components/AboutUs";
 import apiService, { GenerateWebsiteResponse } from "@/lib/api";
 
 const Index = () => {
@@ -154,43 +155,8 @@ const Index = () => {
           <FeatureGrid />
         </div>
 
-        {/* Examples Section */}
-        <section id="examples" className="py-24 bg-gradient-to-br from-gray-50 to-white dark:from-gray-950 dark:to-black transition-colors duration-300">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-5xl font-bold mb-6 text-black dark:text-white">Example Creations</h2>
-              <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
-                See what's possible with AI-powered website generation
-              </p>
-            </div>
-            
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {/* Example cards with 3D effects */}
-              {[
-                { title: "E-commerce Store", desc: "Modern online shopping experience", color: "from-blue-500 to-purple-600" },
-                { title: "Portfolio Site", desc: "Creative professional showcase", color: "from-green-500 to-teal-600" },
-                { title: "SaaS Landing", desc: "Converting product pages", color: "from-orange-500 to-red-600" },
-                { title: "Blog Platform", desc: "Content-focused design", color: "from-purple-500 to-pink-600" },
-                { title: "Agency Website", desc: "Corporate and professional", color: "from-gray-600 to-gray-800" },
-                { title: "Restaurant Site", desc: "Food and hospitality focused", color: "from-yellow-500 to-orange-600" }
-              ].map((example, index) => (
-                <div 
-                  key={index}
-                  className="group relative bg-white dark:bg-gray-900 rounded-3xl p-8 hover:shadow-2xl transition-all duration-500 hover:-translate-y-4 transform perspective-1000 border border-gray-100 dark:border-gray-800"
-                  style={{ animationDelay: `${index * 100}ms` }}
-                >
-                  <div className={`w-full h-48 bg-gradient-to-br ${example.color} rounded-2xl mb-6 opacity-80 group-hover:opacity-100 transition-opacity duration-300 shadow-lg group-hover:shadow-xl transform group-hover:scale-105`}></div>
-                  <h3 className="text-xl font-bold mb-3 text-black dark:text-white group-hover:text-gray-700 dark:group-hover:text-gray-300 transition-colors">
-                    {example.title}
-                  </h3>
-                  <p className="text-gray-600 dark:text-gray-400 group-hover:text-gray-500 dark:group-hover:text-gray-500 transition-colors">
-                    {example.desc}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+        {/* About Us Section */}
+        <AboutUs />
       </main>
     </div>
   );
