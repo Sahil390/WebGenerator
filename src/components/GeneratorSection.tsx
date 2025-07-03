@@ -76,7 +76,7 @@ const GeneratorSection = ({ prompt, setPrompt, isGenerating, onGenerate }: Gener
         <div className="space-y-6">
           <div className="relative group">
             <Textarea
-              placeholder="Describe your website briefly for faster generation... (e.g., 'Modern restaurant website with menu and contact page')"
+              placeholder="Describe the website you want to create... (e.g., 'A modern portfolio for a graphic designer with dark theme, smooth animations, and interactive galleries')"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               className="min-h-40 text-lg border-0 focus:ring-0 resize-none bg-transparent text-black dark:text-white placeholder-gray-500 dark:placeholder-gray-400 leading-relaxed p-4 group-hover:placeholder-gray-400 dark:group-hover:placeholder-gray-300 transition-colors duration-300"
@@ -88,10 +88,10 @@ const GeneratorSection = ({ prompt, setPrompt, isGenerating, onGenerate }: Gener
           </div>
           
           {/* Tip for better generation */}
-          <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-            <p className="text-sm text-yellow-700 dark:text-yellow-300 flex items-center">
+          <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+            <p className="text-sm text-blue-700 dark:text-blue-300 flex items-center">
               <Lightbulb className="w-4 h-4 mr-2" />
-              <strong>Pro tip:</strong> Keep descriptions concise (1-2 sentences) for faster generation and better results!
+              <strong>Pro tip:</strong> The more detailed your description, the better the result! Include style preferences, layout ideas, and specific features you want.
             </p>
           </div>
           

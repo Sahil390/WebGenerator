@@ -26,8 +26,13 @@ const retryOperation = async (operation, maxRetries = 2, delay = 1000) => {
 };
 
 exports.handler = async (event, context) => {
-  // Set function timeout context
+  // Set function timeout context and memory optimization
   context.callbackWaitsForEmptyEventLoop = false;
+  
+  // Increase memory available
+  if (context.memoryLimitInMB) {
+    console.log(`Memory limit: ${context.memoryLimitInMB}MB`);
+  }
   
   // Enable CORS
   const headers = {
@@ -135,7 +140,7 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Get the generative model with optimized settings for faster response
+    // Get the generative model with full settings for better results
     let model;
     try {
       model = genAI.getGenerativeModel({ 
@@ -144,7 +149,7 @@ exports.handler = async (event, context) => {
           temperature: 0.7,
           topP: 0.8,
           topK: 40,
-          maxOutputTokens: 4096, // Reduced from 8192 for faster response
+          maxOutputTokens: 8192, // Restored full token limit
         }
       });
       console.log('✅ Model initialized successfully');
@@ -161,33 +166,54 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Shorter, more focused prompt for faster generation
+    // Enhanced prompt for better website generation (restored full prompt)
     const enhancedPrompt = `
-Create a modern, responsive HTML website for: "${prompt}"
+Create a complete, modern, responsive HTML website based on this description: "${prompt}"
 
 Requirements:
-- Complete HTML document with embedded CSS
+1. Generate a COMPLETE HTML document with proper structure
+2. Include comprehensive CSS styling (embedded in <style> tags)
+3. Make it fully responsive and mobile-friendly
+4. Use modern CSS techniques (flexbox, grid, etc.)
+5. Include interactive JavaScript features where appropriate (but NO navigation or window.location changes)
+6. Use semantic HTML elements
+7. Ensure accessibility with proper ARIA labels
+8. Include meta tags for SEO
+9. Use a cohesive color scheme and typography
+10. Make it visually appealing and professional
+
+IMPORTANT CONSTRAINTS:
+- Do NOT include any links that navigate to external sites
+- Do NOT include any JavaScript that changes window.location or document.location
+- Do NOT include any window.open() calls
+- Make all links either non-functional (#) or use onclick="return false;"
+- Do NOT include any form submissions that navigate away
+- This is for a PREVIEW ONLY - no actual navigation should occur
+
+The website should be complete and ready to use. Include:
+- Header with navigation (but make nav links non-functional for preview)
+- Main content sections
+- Footer
 - Responsive design
 - Professional styling
-- NO external links or navigation
-- NO JavaScript that navigates away
-- Keep it concise but functional
+- Interactive elements (hover effects, animations, etc.)
+- Modern animations and transitions
 
-Return ONLY the HTML code.`;
+Return ONLY the complete HTML code without any markdown formatting or explanations.`;
 
     console.log('🚀 Starting content generation...');
     let result, response, generatedHTML;
     
-    // Use retry logic for Gemini API call with shorter timeout
+    // Use retry logic for Gemini API call with appropriate timeout
     try {
       const generateWithRetry = async () => {
         return await withTimeout(
           model.generateContent(enhancedPrompt),
-          30000 // Reduced to 30 second timeout
+          60000 // Increased to 60 second timeout for detailed prompts
         );
       };
       
-      result = await retryOperation(generateWithRetry, 1, 1000); // Reduced to 1 retry
+      result = await retryOperation(generateWithRetry, 2, 2000); // Restored 2 retries
       console.log('📨 Got result from Gemini');
     } catch (generateError) {
       console.error('❌ Gemini API call failed after retries:', generateError);
@@ -200,7 +226,7 @@ Return ONLY the HTML code.`;
           body: JSON.stringify({
             success: false,
             error: 'Request timeout',
-            details: 'The AI service is taking too long. Please try with a shorter, more specific prompt.',
+            details: 'The AI service is taking longer than expected. Please try again - your detailed description is being processed.',
             errorType: 'TimeoutError'
           })
         };

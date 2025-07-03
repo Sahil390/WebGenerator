@@ -191,10 +191,10 @@ const PreviewSection = ({ generatedSite, isGenerating, onPreview, onExport, onSh
             {/* Loading Tips */}
             <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-800">
               <p className="text-sm text-blue-700 dark:text-blue-300 mb-2">
-                💡 Tip: Keep prompts concise for faster generation!
+                💡 Tip: The more detailed your description, the better the result!
               </p>
               <p className="text-xs text-blue-600 dark:text-blue-400">
-                Example: "Modern restaurant website with menu and contact page"
+                Include colors, layout preferences, sections, and any specific features you want.
               </p>
             </div>
           </div>
