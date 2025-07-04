@@ -1,8 +1,11 @@
 
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Play, Sparkles } from "lucide-react";
+import { ArrowRight, Play, Sparkles, X } from "lucide-react";
+import { useState, useEffect } from "react";
 
 const Hero = () => {
+  const [isVideoOpen, setIsVideoOpen] = useState(false);
+  
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
     if (element) {
@@ -12,6 +15,30 @@ const Hero = () => {
       });
     }
   };
+
+  const openVideo = () => {
+    setIsVideoOpen(true);
+    document.body.style.overflow = 'hidden'; // Prevent background scrolling
+  };
+
+  const closeVideo = () => {
+    setIsVideoOpen(false);
+    document.body.style.overflow = 'unset'; // Restore scrolling
+  };
+
+  // Close video on Escape key press
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && isVideoOpen) {
+        closeVideo();
+      }
+    };
+
+    if (isVideoOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [isVideoOpen]);
 
   return (
     <section className="relative py-24 sm:py-40 overflow-hidden bg-gradient-to-br from-white via-gray-50 to-white dark:from-black dark:via-gray-950 dark:to-black transition-all duration-500">
@@ -77,6 +104,7 @@ const Hero = () => {
               variant="ghost" 
               size="lg" 
               className="text-gray-700 dark:text-gray-300 hover:text-black dark:hover:text-white hover:bg-gradient-to-r hover:from-gray-50/80 hover:to-gray-100/80 dark:hover:from-gray-800/80 dark:hover:to-gray-700/80 px-12 py-6 text-xl font-bold rounded-2xl hover-scale group transform hover:-translate-y-2 transition-all duration-500 border-2 border-gray-200/70 dark:border-gray-700/70 hover:border-gray-400/80 dark:hover:border-gray-500/80 shadow-lg hover:shadow-2xl backdrop-blur-sm bg-white/20 dark:bg-gray-900/20"
+              onClick={openVideo}
             >
               <Play className="mr-3 w-6 h-6 group-hover:scale-110 transition-transform duration-300" />
               Watch Demo
@@ -107,6 +135,40 @@ const Hero = () => {
           </div>
         </div>
       </div>
+      
+      {/* Video Modal with smooth animations */}
+      {isVideoOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm animate-fade-in">
+          <div className="relative w-full max-w-6xl mx-4 animate-scale-up">
+            {/* Close button */}
+            <button
+              onClick={closeVideo}
+              className="absolute -top-12 right-0 text-white hover:text-gray-300 transition-colors duration-200 p-2 rounded-full hover:bg-white/10 group"
+            >
+              <X className="w-8 h-8 group-hover:scale-110 transition-transform duration-200" />
+            </button>
+            
+            {/* Video container with rounded corners and shadow */}
+            <div className="relative bg-black rounded-2xl overflow-hidden shadow-2xl border border-gray-800">
+              <div className="relative aspect-video">
+                <iframe
+                  src="https://www.youtube.com/embed/2I02SwXQGa8?autoplay=1&rel=0&modestbranding=1"
+                  title="WebGenerator Demo"
+                  className="w-full h-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            </div>
+            
+            {/* Click outside to close */}
+            <div 
+              className="absolute inset-0 -z-10"
+              onClick={closeVideo}
+            />
+          </div>
+        </div>
+      )}
     </section>
   );
 };
