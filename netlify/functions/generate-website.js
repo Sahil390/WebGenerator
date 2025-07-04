@@ -10,18 +10,30 @@ const withTimeout = (promise, timeoutMs) => {
   ]);
 };
 
-// Helper function for retry logic
-const retryOperation = async (operation, maxRetries = 2, delay = 1000) => {
+// Helper function for retry logic with fallback
+const retryWithFallback = async (primaryOperation, fallbackOperation, maxRetries = 2, delay = 1000) => {
+  // Try primary operation first
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      return await operation();
+      console.log(`Primary attempt ${attempt}...`);
+      return await primaryOperation();
     } catch (error) {
-      console.log(`Attempt ${attempt} failed:`, error.message);
+      console.log(`Primary attempt ${attempt} failed:`, error.message);
       if (attempt === maxRetries) {
-        throw error;
+        console.log('Primary operation failed, trying fallback...');
+        break;
       }
       await new Promise(resolve => setTimeout(resolve, delay * attempt));
     }
+  }
+  
+  // If primary fails, try fallback
+  try {
+    console.log('Executing fallback operation...');
+    return await fallbackOperation();
+  } catch (fallbackError) {
+    console.log('Fallback also failed:', fallbackError.message);
+    throw fallbackError;
   }
 };
 
@@ -140,21 +152,34 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Get the generative model with full settings for better results
-    let model;
+    // Get the generative models - primary and fallback
+    let primaryModel, fallbackModel;
     try {
-      model = genAI.getGenerativeModel({ 
+      // Primary model with full capabilities
+      primaryModel = genAI.getGenerativeModel({ 
         model: "gemini-1.5-flash",
         generationConfig: {
           temperature: 0.7,
           topP: 0.8,
           topK: 40,
-          maxOutputTokens: 8192, // Restored full token limit
+          maxOutputTokens: 8192,
         }
       });
-      console.log('✅ Model initialized successfully');
+      
+      // Fallback model with reduced capabilities for speed
+      fallbackModel = genAI.getGenerativeModel({ 
+        model: "gemini-1.5-flash",
+        generationConfig: {
+          temperature: 0.8,
+          topP: 0.9,
+          topK: 20,
+          maxOutputTokens: 4096, // Smaller for speed
+        }
+      });
+      
+      console.log('✅ Models initialized successfully');
     } catch (modelError) {
-      console.error('❌ Failed to initialize model:', modelError);
+      console.error('❌ Failed to initialize models:', modelError);
       return {
         statusCode: 500,
         headers,
@@ -166,8 +191,8 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Enhanced prompt for better website generation (restored full prompt)
-    const enhancedPrompt = `
+    // Primary prompt (detailed)
+    const primaryPrompt = `
 Create a complete, modern, responsive HTML website based on this description: "${prompt}"
 
 Requirements:
@@ -201,22 +226,44 @@ The website should be complete and ready to use. Include:
 
 Return ONLY the complete HTML code without any markdown formatting or explanations.`;
 
-    console.log('🚀 Starting content generation...');
+    // Fallback prompt (simplified but still good)
+    const fallbackPrompt = `
+Create a modern, responsive HTML website for: "${prompt}"
+
+Requirements:
+- Complete HTML document with embedded CSS styling
+- Responsive design that works on all devices
+- Professional appearance with good color scheme
+- Include header, main content, and footer sections
+- NO external links or navigation that leaves the page
+- Modern CSS with animations and hover effects
+
+Return ONLY the HTML code.`;
+
+    console.log('🚀 Starting content generation with fallback strategy...');
     let result, response, generatedHTML;
     
-    // Use retry logic for Gemini API call with appropriate timeout
+    // Define primary and fallback operations
+    const primaryOperation = async () => {
+      return await withTimeout(
+        primaryModel.generateContent(primaryPrompt),
+        45000 // 45 second timeout for primary
+      );
+    };
+    
+    const fallbackOperation = async () => {
+      return await withTimeout(
+        fallbackModel.generateContent(fallbackPrompt),
+        25000 // 25 second timeout for fallback
+      );
+    };
+    
+    // Try primary with fallback
     try {
-      const generateWithRetry = async () => {
-        return await withTimeout(
-          model.generateContent(enhancedPrompt),
-          60000 // Increased to 60 second timeout for detailed prompts
-        );
-      };
-      
-      result = await retryOperation(generateWithRetry, 2, 2000); // Restored 2 retries
-      console.log('📨 Got result from Gemini');
+      result = await retryWithFallback(primaryOperation, fallbackOperation, 1, 1000);
+      console.log('📨 Got result from Gemini (primary or fallback)');
     } catch (generateError) {
-      console.error('❌ Gemini API call failed after retries:', generateError);
+      console.error('❌ Both primary and fallback failed:', generateError);
       
       // Check if it's a timeout error
       if (generateError.message.includes('timed out')) {
@@ -226,7 +273,7 @@ Return ONLY the complete HTML code without any markdown formatting or explanatio
           body: JSON.stringify({
             success: false,
             error: 'Request timeout',
-            details: 'The AI service is taking longer than expected. Please try again - your detailed description is being processed.',
+            details: 'The AI service is experiencing high load. Please try again with a simpler description or try again later.',
             errorType: 'TimeoutError'
           })
         };
@@ -305,6 +352,12 @@ Return ONLY the complete HTML code without any markdown formatting or explanatio
     
     const title = titleMatch ? titleMatch[1] : 'Generated Website';
     const description = descriptionMatch ? descriptionMatch[1] : 'AI-generated website';
+
+    console.log('✅ Website generated successfully');
+    
+    // Clean up variables for memory management
+    result = null;
+    response = null;
 
     return {
       statusCode: 200,

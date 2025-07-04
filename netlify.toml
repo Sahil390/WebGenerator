@@ -13,8 +13,8 @@
   node_bundler = "esbuild"
 
 [functions."generate-website"]
-  timeout = 75
-  memory = 1024
+  timeout = 60
+  memory = 512
 
 [functions."health"]
   timeout = 10
