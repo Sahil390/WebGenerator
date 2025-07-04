@@ -243,18 +243,18 @@ Return ONLY the HTML code.`;
     console.log('🚀 Starting content generation with fallback strategy...');
     let result, response, generatedHTML;
     
-    // Define primary and fallback operations
+    // Define primary and fallback operations with very generous timeouts
     const primaryOperation = async () => {
       return await withTimeout(
         primaryModel.generateContent(primaryPrompt),
-        45000 // 45 second timeout for primary
+        300000 // 5 minute timeout for primary (very generous)
       );
     };
     
     const fallbackOperation = async () => {
       return await withTimeout(
         fallbackModel.generateContent(fallbackPrompt),
-        25000 // 25 second timeout for fallback
+        180000 // 3 minute timeout for fallback
       );
     };
     
@@ -306,7 +306,7 @@ Return ONLY the HTML code.`;
     }
     
     try {
-      response = await withTimeout(result.response, 10000); // 10 second timeout for response processing
+      response = await withTimeout(result.response, 60000); // 1 minute timeout for response processing
       console.log('📨 Got response from result');
     } catch (responseError) {
       console.error('❌ Failed to get response:', responseError);

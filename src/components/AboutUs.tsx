@@ -10,9 +10,9 @@ const AboutUs = () => {
       image: "/api/placeholder/300/300", // You can replace this with actual image paths
       skills: ["React", "Node.js", "AI/ML", "TypeScript", "Python"],
       social: {
-        github: "https://github.com/sahilnarang", // Replace with actual links
-        linkedin: "https://linkedin.com/in/sahilnarang",
-        email: "sahil@example.com"
+        github: "https://github.com/Sahil390", // Replace with actual links
+        linkedin: "https://www.linkedin.com/in/sahil-narang-6600b11bb",
+        email: "sahil.119480@stu.upes.ac.in"
       },
       gradient: "from-blue-500 to-purple-600"
     },
@@ -23,9 +23,9 @@ const AboutUs = () => {
       image: "/api/placeholder/300/300", // You can replace this with actual image paths
       skills: ["React", "UI/UX", "Tailwind CSS", "JavaScript", "Design"],
       social: {
-        github: "https://github.com/kushagraagarwal", // Replace with actual links
-        linkedin: "https://linkedin.com/in/kushagraagarwal",
-        email: "kushagra@example.com"
+        github: "https://github.com/kushagraa263139", // Replace with actual links
+        linkedin: "http://www.linkedin.com/in/kushagra-agrawal-b13a37362",
+        email: "kushagraa685@gamil.com"
       },
       gradient: "from-green-500 to-teal-600"
     }

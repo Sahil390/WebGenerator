@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Eye, Download, Share2, Loader2, Monitor, Smartphone, Tablet, Sparkles, CheckCircle, Code } from "lucide-react";
+import { Eye, Download, Loader2, Monitor, Smartphone, Tablet, Sparkles, CheckCircle, Code } from "lucide-react";
 import { useState, useEffect } from "react";
 import { GenerateWebsiteResponse } from "@/lib/api";
 
@@ -317,7 +317,7 @@ const PreviewSection = ({ generatedSite, isGenerating, onPreview, onExport, onSh
       </Card>
 
       {/* Enhanced Action Buttons */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 gap-4">
         <Button 
           variant="outline" 
           onClick={onPreview}
@@ -333,14 +333,6 @@ const PreviewSection = ({ generatedSite, isGenerating, onPreview, onExport, onSh
         >
           <Download className="w-4 h-4 mr-2" />
           Export
-        </Button>
-        <Button 
-          variant="outline" 
-          onClick={onShare}
-          className="hover-scale transform hover:-translate-y-1 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:text-black dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-300 backdrop-blur-sm"
-        >
-          <Share2 className="w-4 h-4 mr-2" />
-          Share
         </Button>
       </div>
 
