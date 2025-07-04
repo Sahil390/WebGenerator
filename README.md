@@ -1,5 +1,7 @@
 # WebGenerator - AI-Powered Website Builder 🚀
 
+🌐 **Live Demo**: [https://websgenerator.netlify.app/](https://websgenerator.netlify.app/)
+
 A modern, responsive web application that generates beautiful websites using AI. Built with React, TypeScript, and powered by Google's Gemini AI.
 
 ## ✨ Features
