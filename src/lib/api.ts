@@ -41,13 +41,14 @@ class ApiService {
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
     console.log('🌐 Making API request to:', url);
-    console.log('📤 Request options:', options);
     
     const defaultOptions: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
         ...options.headers,
       },
+      // Set a reasonable timeout for the frontend request
+      signal: AbortSignal.timeout(320000), // 5 min 20 sec (20 sec buffer over backend)
     };
 
     try {
@@ -57,25 +58,28 @@ class ApiService {
       });
 
       console.log('📥 Response status:', response.status, response.statusText);
-      console.log('📥 Response headers:', Object.fromEntries(response.headers.entries()));
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         console.error('❌ API Error:', errorData);
         
-        // Create a more descriptive error message based on status code
+        // Create more descriptive error messages based on status and error type
         let errorMessage = errorData.error || `HTTP error! status: ${response.status}`;
         
         if (response.status === 502) {
           if (errorData.errorType === 'TimeoutError') {
-            errorMessage = 'Request timed out. Please try with a shorter prompt or try again later.';
+            errorMessage = 'The AI is taking longer than expected to generate your website. This often happens with very detailed prompts or during high traffic. Please try again with a simpler description.';
+          } else if (errorData.errorType === 'ServerBusyError') {
+            errorMessage = 'The server is temporarily busy. Please wait 30 seconds and try again.';
           } else {
-            errorMessage = 'Server temporarily unavailable. Please try again in a moment.';
+            errorMessage = 'The AI service is temporarily unavailable. Please try again in a few moments.';
           }
         } else if (response.status === 429) {
-          errorMessage = 'Too many requests. Please wait a moment and try again.';
+          errorMessage = 'The AI service is experiencing high demand. Please wait 30 seconds and try again.';
         } else if (response.status === 500) {
-          errorMessage = 'Internal server error. Please try again or contact support.';
+          errorMessage = 'Internal server error. Please try again or contact support if the issue persists.';
+        } else if (response.status === 504) {
+          errorMessage = 'The request took too long to complete. Please try again with a shorter, simpler description.';
         }
         
         const error = new Error(errorMessage);
@@ -90,6 +94,23 @@ class ApiService {
       return data;
     } catch (error) {
       console.error('💥 API Request failed:', error);
+      
+      // Handle timeout errors specifically
+      if (error.name === 'TimeoutError' || error.name === 'AbortError') {
+        const timeoutError = new Error('The request took too long to complete. Please try again with a shorter description.');
+        (timeoutError as any).status = 504;
+        (timeoutError as any).errorType = 'TimeoutError';
+        throw timeoutError;
+      }
+      
+      // Handle network errors
+      if (error.message.includes('Failed to fetch') || error.message.includes('network')) {
+        const networkError = new Error('Network error. Please check your internet connection and try again.');
+        (networkError as any).status = 502;
+        (networkError as any).errorType = 'NetworkError';
+        throw networkError;
+      }
+      
       throw error;
     }
   }

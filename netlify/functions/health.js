@@ -31,7 +31,17 @@ exports.handler = async (event, context) => {
     body: JSON.stringify({
       status: 'healthy',
       timestamp: new Date().toISOString(),
-      service: 'WebGenerator API'
+      service: 'WebGenerator API',
+      version: '2.0.0',
+      environment: process.env.NODE_ENV || 'production',
+      memory: {
+        limit: context.memoryLimitInMB || 'unknown',
+        remaining: context.getRemainingTimeInMillis ? context.getRemainingTimeInMillis() : 'unknown'
+      },
+      apiStatus: {
+        geminiApiKey: process.env.GEMINI_API_KEY ? 'configured' : 'missing',
+        nodeVersion: process.version
+      }
     })
   };
 };

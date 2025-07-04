@@ -152,34 +152,42 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Get the generative models - primary and fallback
-    let primaryModel, fallbackModel;
+    // Get optimized model for production reliability
+    let model;
     try {
-      // Primary model with full capabilities
-      primaryModel = genAI.getGenerativeModel({ 
-        model: "gemini-1.5-flash",
+      model = genAI.getGenerativeModel({ 
+        model: "gemini-1.5-flash", // Fast and reliable model
         generationConfig: {
-          temperature: 0.7,
-          topP: 0.8,
-          topK: 40,
-          maxOutputTokens: 8192,
-        }
+          temperature: 0.7,      // Slightly more focused responses
+          topP: 0.8,             // More deterministic
+          topK: 20,              // Reduced for consistency
+          maxOutputTokens: 3072, // Balanced for performance
+          candidateCount: 1,     // Single candidate for speed
+        },
+        // Add safety settings for production
+        safetySettings: [
+          {
+            category: "HARM_CATEGORY_HARASSMENT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          },
+          {
+            category: "HARM_CATEGORY_HATE_SPEECH", 
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          },
+          {
+            category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          },
+          {
+            category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          }
+        ]
       });
       
-      // Fallback model with reduced capabilities for speed
-      fallbackModel = genAI.getGenerativeModel({ 
-        model: "gemini-1.5-flash",
-        generationConfig: {
-          temperature: 0.8,
-          topP: 0.9,
-          topK: 20,
-          maxOutputTokens: 4096, // Smaller for speed
-        }
-      });
-      
-      console.log('✅ Models initialized successfully');
+      console.log('✅ Model initialized with production settings');
     } catch (modelError) {
-      console.error('❌ Failed to initialize models:', modelError);
+      console.error('❌ Failed to initialize model:', modelError);
       return {
         statusCode: 500,
         headers,
@@ -191,154 +199,148 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Primary prompt (detailed)
-    const primaryPrompt = `
-Create a complete, modern, responsive HTML website based on this description: "${prompt}"
+    // Optimized prompt for better reliability
+    const optimizedPrompt = `Create a modern, responsive website for: "${prompt}"
 
-Requirements:
-1. Generate a COMPLETE HTML document with proper structure
-2. Include comprehensive CSS styling (embedded in <style> tags)
-3. Make it fully responsive and mobile-friendly
-4. Use modern CSS techniques (flexbox, grid, etc.)
-5. Include interactive JavaScript features where appropriate (but NO navigation or window.location changes)
-6. Use semantic HTML elements
-7. Ensure accessibility with proper ARIA labels
-8. Include meta tags for SEO
-9. Use a cohesive color scheme and typography
-10. Make it visually appealing and professional
-
-IMPORTANT CONSTRAINTS:
-- Do NOT include any links that navigate to external sites
-- Do NOT include any JavaScript that changes window.location or document.location
-- Do NOT include any window.open() calls
-- Make all links either non-functional (#) or use onclick="return false;"
-- Do NOT include any form submissions that navigate away
-- This is for a PREVIEW ONLY - no actual navigation should occur
-
-The website should be complete and ready to use. Include:
-- Header with navigation (but make nav links non-functional for preview)
-- Main content sections
-- Footer
+Generate a complete HTML document with:
+- Embedded CSS styling (no external files)
 - Responsive design
-- Professional styling
-- Interactive elements (hover effects, animations, etc.)
-- Modern animations and transitions
+- Professional appearance
+- Header, main content, and footer
+- Modern colors and typography
+- NO external links or navigation
 
-Return ONLY the complete HTML code without any markdown formatting or explanations.`;
+Return only the HTML code without any markdown formatting.`;
 
-    // Fallback prompt (simplified but still good)
-    const fallbackPrompt = `
-Create a modern, responsive HTML website for: "${prompt}"
-
-Requirements:
-- Complete HTML document with embedded CSS styling
-- Responsive design that works on all devices
-- Professional appearance with good color scheme
-- Include header, main content, and footer sections
-- NO external links or navigation that leaves the page
-- Modern CSS with animations and hover effects
-
-Return ONLY the HTML code.`;
-
-    console.log('🚀 Starting content generation with fallback strategy...');
-    let result, response, generatedHTML;
+    console.log('🚀 Starting content generation with optimized approach...');
+    let result;
     
-    // Define primary and fallback operations with very generous timeouts
-    const primaryOperation = async () => {
-      return await withTimeout(
-        primaryModel.generateContent(primaryPrompt),
-        300000 // 5 minute timeout for primary (very generous)
-      );
-    };
+    // Enhanced generation with progressive timeout and retry logic
+    let genResult;
     
-    const fallbackOperation = async () => {
-      return await withTimeout(
-        fallbackModel.generateContent(fallbackPrompt),
-        180000 // 3 minute timeout for fallback
-      );
-    };
-    
-    // Try primary with fallback
+    // Primary attempt with optimized timeout
     try {
-      result = await retryWithFallback(primaryOperation, fallbackOperation, 1, 1000);
-      console.log('📨 Got result from Gemini (primary or fallback)');
-    } catch (generateError) {
-      console.error('❌ Both primary and fallback failed:', generateError);
+      console.log('🎯 Primary generation attempt...');
+      genResult = await withTimeout(
+        model.generateContent(optimizedPrompt),
+        150000 // 2.5 minute timeout
+      );
+      console.log('✅ Primary generation succeeded');
+    } catch (primaryError) {
+      console.log('⚠️ Primary generation failed:', primaryError.message);
       
-      // Check if it's a timeout error
-      if (generateError.message.includes('timed out')) {
+      // If primary fails, try with simplified prompt
+      const fallbackPrompt = `Create a simple website for: "${prompt}"
+
+Generate HTML with:
+- Basic structure (header, main, footer)
+- Embedded CSS
+- Responsive design
+- Clean, modern appearance
+
+Return only HTML code:`;
+
+      try {
+        console.log('� Attempting fallback generation...');
+        genResult = await withTimeout(
+          model.generateContent(fallbackPrompt),
+          90000 // 1.5 minute timeout for fallback
+        );
+        console.log('✅ Fallback generation succeeded');
+      } catch (fallbackError) {
+        console.error('❌ All generation attempts failed');
+        
+        // Check error types and return appropriate response
+        const lastError = fallbackError.message || primaryError.message;
+        
+        if (lastError.includes('timed out') || lastError.includes('timeout')) {
+          return {
+            statusCode: 502,
+            headers,
+            body: JSON.stringify({
+              success: false,
+              error: 'Request timeout',
+              details: 'The AI service is taking longer than expected. This usually happens during high traffic. Please try again in a few moments with a shorter description.',
+              errorType: 'TimeoutError'
+            })
+          };
+        }
+        
+        if (lastError.includes('rate limit') || lastError.includes('quota') || lastError.includes('429')) {
+          return {
+            statusCode: 429,
+            headers,
+            body: JSON.stringify({
+              success: false,
+              error: 'Service temporarily unavailable',
+              details: 'The AI service is currently experiencing high demand. Please wait 30 seconds and try again.',
+              errorType: 'RateLimitError'
+            })
+          };
+        }
+        
+        // Generic error
         return {
           statusCode: 502,
           headers,
           body: JSON.stringify({
             success: false,
-            error: 'Request timeout',
-            details: 'The AI service is experiencing high load. Please try again with a simpler description or try again later.',
-            errorType: 'TimeoutError'
+            error: 'Service temporarily unavailable',
+            details: 'Please try again in a few moments. If the problem persists, try using a shorter, simpler description.',
+            errorType: 'ServiceError'
           })
         };
       }
-      
-      // Check if it's a rate limit error
-      if (generateError.message.includes('rate limit') || generateError.message.includes('quota')) {
-        return {
-          statusCode: 429,
-          headers,
-          body: JSON.stringify({
-            success: false,
-            error: 'Rate limit exceeded',
-            details: 'The AI service is currently busy. Please try again in a few moments.',
-            errorType: 'RateLimitError'
-          })
-        };
-      }
-      
-      return {
-        statusCode: 502,
-        headers,
-        body: JSON.stringify({
-          success: false,
-          error: 'AI generation failed',
-          details: generateError.message || 'Failed to call Gemini API',
-          errorType: generateError.name || 'ApiError'
-        })
-      };
     }
     
-    try {
-      response = await withTimeout(result.response, 60000); // 1 minute timeout for response processing
-      console.log('📨 Got response from result');
-    } catch (responseError) {
-      console.error('❌ Failed to get response:', responseError);
-      return {
-        statusCode: 502,
-        headers,
-        body: JSON.stringify({
-          success: false,
-          error: 'Failed to process AI response',
-          details: responseError.message.includes('timed out') 
-            ? 'Response processing timed out. Please try again.' 
-            : responseError.message,
-          errorType: responseError.message.includes('timed out') ? 'TimeoutError' : 'ResponseError'
-        })
-      };
-    }
+    // Assign the result for further processing
+    result = genResult;
+    
+    // Process the response with better error handling
+    let response, generatedHTML;
     
     try {
+      console.log('🔄 Processing AI response...');
+      response = await withTimeout(
+        result.response,
+        45000 // 45 second timeout for response processing
+      );
+      console.log('✅ Response processed successfully');
+      
+      // Extract text immediately to avoid memory issues
       generatedHTML = response.text();
-      console.log('📄 Extracted text successfully', {
+      console.log('📄 Text extracted successfully', {
         htmlLength: generatedHTML.length,
-        hasHtmlTag: generatedHTML.includes('<html')
+        hasHtmlTag: generatedHTML.includes('<html'),
+        hasBodyTag: generatedHTML.includes('<body')
       });
-    } catch (textError) {
-      console.error('❌ Failed to extract text:', textError);
+      
+      // Clean up AI objects immediately
+      result = null;
+      response = null;
+      
+      // Force garbage collection hint (Node.js specific)
+      if (global.gc) {
+        global.gc();
+      }
+      
+    } catch (responseError) {
+      console.error('❌ Response processing failed:', responseError);
+      
+      // Clean up on error
+      result = null;
+      response = null;
+      
       return {
-        statusCode: 500,
+        statusCode: 502,
         headers,
         body: JSON.stringify({
           success: false,
-          error: 'Failed to extract generated content',
-          details: textError.message
+          error: 'Response processing failed',
+          details: responseError.message.includes('timed out') 
+            ? 'Server is temporarily busy processing your request. Please try again in a moment.' 
+            : 'Failed to process AI response. Please try again.',
+          errorType: responseError.message.includes('timed out') ? 'ServerBusyError' : 'ResponseError'
         })
       };
     }

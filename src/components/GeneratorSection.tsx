@@ -101,10 +101,15 @@ const GeneratorSection = ({ prompt, setPrompt, isGenerating, onGenerate }: Gener
             className="w-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 hover:from-blue-600 hover:via-purple-600 hover:to-pink-600 text-white py-6 text-xl font-semibold rounded-xl disabled:opacity-50 hover-scale group transform hover:-translate-y-1 shadow-lg hover:shadow-2xl transition-all duration-500 border-2 border-transparent hover:border-blue-300 dark:hover:border-blue-700"
           >
             {isGenerating ? (
-              <>
-                <Loader2 className="mr-3 w-6 h-6 animate-spin" />
-                <span className="animate-pulse">Generating Your Website...</span>
-              </>
+              <div className="flex flex-col items-center space-y-2">
+                <div className="flex items-center">
+                  <Loader2 className="mr-3 w-6 h-6 animate-spin" />
+                  <span className="animate-pulse">Generating Your Website...</span>
+                </div>
+                <div className="text-sm opacity-75">
+                  This may take up to 3 minutes for complex sites
+                </div>
+              </div>
             ) : (
               <>
                 <Wand2 className="mr-3 w-6 h-6 group-hover:rotate-12 transition-transform duration-300" />
