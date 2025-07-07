@@ -414,53 +414,107 @@ All colors MUST be HSL.
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
   }
-}
 
-/* Enhanced custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-}
+  /* Platform Page Animations */
+  .animate-slide-in-left {
+    animation: slideInLeft 0.6s ease-out;
+    will-change: transform, opacity;
+  }
 
-::-webkit-scrollbar-track {
-  background: transparent;
-}
+  .animate-slide-in-right {
+    animation: slideInRight 0.6s ease-out;
+    will-change: transform, opacity;
+  }
 
-::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
-  transition: background 0.3s ease;
-}
+  .animate-slide-up {
+    animation: slideUp 0.8s ease-out;
+    will-change: transform, opacity;
+  }
 
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.4);
-}
+  .animate-slide-up-delayed {
+    animation: slideUp 0.8s ease-out 0.2s both;
+    will-change: transform, opacity;
+  }
 
-.dark::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-}
+  @keyframes slideInLeft {
+    from {
+      opacity: 0;
+      transform: translateX(-50px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
 
-.dark::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.4);
-}
+  @keyframes slideInRight {
+    from {
+      opacity: 0;
+      transform: translateX(50px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
 
-/* Selection styling */
-::selection {
-  background: rgba(0, 0, 0, 0.1);
-  color: inherit;
-}
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 
-.dark ::selection {
-  background: rgba(255, 255, 255, 0.1);
-  color: inherit;
-}
+  /* Enhanced custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
 
-/* Focus improvements */
-*:focus-visible {
-  outline: 2px solid rgba(0, 0, 0, 0.3);
-  outline-offset: 2px;
-  border-radius: 4px;
-}
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
 
-.dark *:focus-visible {
-  outline: 2px solid rgba(255, 255, 255, 0.3);
+  ::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    transition: background 0.3s ease;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.4);
+  }
+
+  .dark::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  .dark::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.4);
+  }
+
+  /* Selection styling */
+  ::selection {
+    background: rgba(0, 0, 0, 0.1);
+    color: inherit;
+  }
+
+  .dark ::selection {
+    background: rgba(255, 255, 255, 0.1);
+    color: inherit;
+  }
+
+  /* Focus improvements */
+  *:focus-visible {
+    outline: 2px solid rgba(0, 0, 0, 0.3);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  .dark *:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.3);
+  }
 }
