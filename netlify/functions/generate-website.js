@@ -42,10 +42,21 @@ exports.handler = async (event, context) => {
 
   try {
     console.log('🔥 Website generation request received');
+    console.log('🌐 Request details:', {
+      method: event.httpMethod,
+      path: event.path,
+      headers: event.headers,
+      bodyExists: !!event.body,
+      bodyLength: event.body ? event.body.length : 0,
+      queryParams: event.queryStringParameters
+    });
     console.log('Environment check:', {
       hasApiKey: !!process.env.GEMINI_API_KEY,
       apiKeyLength: process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.length : 0,
-      nodeVersion: process.version
+      nodeVersion: process.version,
+      region: process.env.AWS_REGION || 'unknown',
+      functionName: context.functionName || 'unknown',
+      memoryLimit: context.memoryLimitInMB || 'unknown'
     });
     
     // Check if API key is configured
@@ -101,35 +112,54 @@ exports.handler = async (event, context) => {
     console.log('📝 Generating website for:', prompt.substring(0, 100) + '...');
 
     // Initialize Gemini AI
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
-      generationConfig: {
-        temperature: 1.0,
-        topP: 0.98,
-        topK: 128,
-        maxOutputTokens: 8192,
-        candidateCount: 1,
-      },
-      safetySettings: [
-        {
-          category: "HARM_CATEGORY_HARASSMENT",
-          threshold: "BLOCK_MEDIUM_AND_ABOVE"
+    console.log('🤖 Initializing Gemini AI...');
+    let genAI, model;
+    try {
+      genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+      console.log('✅ GoogleGenerativeAI instance created');
+      
+      model = genAI.getGenerativeModel({ 
+        model: "gemini-1.5-flash",
+        generationConfig: {
+          temperature: 1.0,
+          topP: 0.98,
+          topK: 128,
+          maxOutputTokens: 8192,
+          candidateCount: 1,
         },
-        {
-          category: "HARM_CATEGORY_HATE_SPEECH", 
-          threshold: "BLOCK_MEDIUM_AND_ABOVE"
-        },
-        {
-          category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-          threshold: "BLOCK_MEDIUM_AND_ABOVE"
-        },
-        {
-          category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-          threshold: "BLOCK_MEDIUM_AND_ABOVE"
-        }
-      ]
-    });
+        safetySettings: [
+          {
+            category: "HARM_CATEGORY_HARASSMENT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          },
+          {
+            category: "HARM_CATEGORY_HATE_SPEECH", 
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          },
+          {
+            category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          },
+          {
+            category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          }
+        ]
+      });
+      console.log('✅ Gemini model configured successfully');
+    } catch (initError) {
+      console.error('❌ Failed to initialize Gemini AI:', initError);
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          error: 'AI initialization failed',
+          details: initError.message,
+          errorType: 'InitializationError'
+        })
+      };
+    }
 
     // Enhanced contextual prompt
     const enhancedPrompt = `You are a PROFESSIONAL WEB DEVELOPER. Create a website based on the user's request with appropriate complexity and design.
