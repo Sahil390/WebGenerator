@@ -22,6 +22,9 @@
 [functions."test"]  
   timeout = 10
 
+[functions."debug"]  
+  timeout = 10
+
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
