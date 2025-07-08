@@ -224,13 +224,23 @@ Create a website that perfectly matches the user's request complexity and style!
     // Primary attempt with optimized timeout
     try {
       console.log('🎯 Primary generation attempt...');
+      console.log('🔧 Model details:', {
+        model: 'gemini-1.5-flash',
+        maxTokens: 8192,
+        temperature: 1.0
+      });
+      
       genResult = await withTimeout(
         model.generateContent(enhancedPrompt),
-        180000 // 3 minute timeout for Netlify
+        240000 // 4 minute timeout for Netlify (under 5 min limit)
       );
       console.log('✅ Primary generation succeeded');
     } catch (primaryError) {
-      console.log('⚠️ Primary generation failed:', primaryError.message);
+      console.log('⚠️ Primary generation failed:', {
+        message: primaryError.message,
+        name: primaryError.name,
+        stack: primaryError.stack?.substring(0, 200)
+      });
       
       // If primary fails, try with simplified prompt
       const fallbackPrompt = `Create a website for: "${prompt}"
@@ -253,13 +263,23 @@ Return only the three code blocks above.`;
 
       try {
         console.log('🔄 Attempting fallback generation...');
+        console.log('🔧 Using simplified prompt, length:', fallbackPrompt.length);
+        
         genResult = await withTimeout(
           model.generateContent(fallbackPrompt),
-          120000 // 2 minute timeout for fallback
+          180000 // 3 minute timeout for fallback
         );
         console.log('✅ Fallback generation succeeded');
       } catch (fallbackError) {
         console.error('❌ All generation attempts failed');
+        console.error('Primary error:', {
+          message: primaryError.message,
+          name: primaryError.name
+        });
+        console.error('Fallback error:', {
+          message: fallbackError.message,
+          name: fallbackError.name
+        });
         
         // Check error types and return appropriate response
         const lastError = fallbackError.message || primaryError.message;
