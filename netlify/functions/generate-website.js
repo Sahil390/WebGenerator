@@ -49,7 +49,9 @@ exports.handler = async (event, context) => {
     });
     
     // Check if API key is configured
-    if (!process.env.GEMINI_API_KEY) {
+    const apiKey = process.env.GEMINI_API_KEY || 'AIzaSyAy8MecUMmBp2xSqMhSBihX8EPRZwdzbt0';
+    
+    if (!apiKey) {
       console.error('❌ Gemini API key not configured');
       return {
         statusCode: 500,
@@ -101,7 +103,7 @@ exports.handler = async (event, context) => {
     console.log('📝 Generating website for:', prompt.substring(0, 100) + '...');
 
     // Initialize Gemini AI
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({ 
       model: "gemini-2.5-flash",
       generationConfig: {
