@@ -12,8 +12,11 @@ export interface GenerateWebsiteResponse {
   success: boolean;
   data: {
     html: string;
-    title: string;
-    description: string;
+    htmlOnly: string;
+    cssOnly: string;
+    jsOnly: string;
+    title?: string;
+    description?: string;
     prompt: string;
     generatedAt: string;
   };

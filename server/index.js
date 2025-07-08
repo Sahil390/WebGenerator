@@ -10,7 +10,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-dotenv.config();
+dotenv.config({ path: path.join(__dirname, '../.env') });
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -66,140 +66,101 @@ app.post('/api/generate-website', async (req, res) => {
       });
     }
 
-    // Ultra-specific prompt that forces complete HTML/CSS generation
+    // Enhanced prompt for contextual website generation (separate HTML, CSS, JS)
     const enhancedPrompt = `
-You are a professional web developer. Create a COMPLETE, WORKING website based on: "${prompt}"
+You are a PROFESSIONAL WEB DEVELOPER. Create a website based on the user's request with appropriate complexity and design.
 
-CRITICAL: You MUST return a SINGLE HTML file with ALL CSS and JavaScript embedded inside. The file must be COMPLETE and WORKING.
+USER REQUEST: "${prompt}"
 
-REQUIRED HTML STRUCTURE:
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Website Title</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        /* ALL CSS GOES HERE */
-    </style>
-</head>
-<body>
-    <!-- ALL HTML CONTENT GOES HERE -->
-    <script>
-        /* ALL JAVASCRIPT GOES HERE */
-    </script>
-</body>
-</html>
+IMPORTANT: Match the complexity and design style to the user's request:
+- If it's a simple tool/calculator/utility: Create a clean, minimal, functional design
+- If it's a business/portfolio/marketing site: Create a modern, professional design
+- If it's a creative/artistic site: Create a visually stunning, award-winning design
 
-MANDATORY CSS REQUIREMENTS:
-1. CSS Variables for colors:
-   :root {
-     --primary: #2563eb;
-     --secondary: #64748b;
-     --accent: #f59e0b;
-     --background: #ffffff;
-     --text: #1e293b;
-     --gray-100: #f1f5f9;
-     --gray-200: #e2e8f0;
-     --gray-300: #cbd5e1;
-   }
+DESIGN GUIDELINES:
+- For simple tools: Focus on functionality, clean layout, minimal colors
+- For business sites: Professional, modern, trustworthy appearance
+- For creative sites: Bold, innovative, award-winning design trends
 
-2. Typography:
-   body { font-family: 'Inter', sans-serif; line-height: 1.6; }
-   h1, h2, h3 { font-family: 'Poppins', sans-serif; font-weight: 600; }
-   h1 { font-size: 3rem; margin-bottom: 1rem; }
-   h2 { font-size: 2.5rem; margin-bottom: 0.8rem; }
-   h3 { font-size: 2rem; margin-bottom: 0.6rem; }
+MANDATORY REQUIREMENTS:
+- Use real images from Unsplash when appropriate (not for simple tools)
+- Make it responsive and mobile-friendly
+- Include proper hover effects and smooth transitions
+- Use modern CSS (Grid, Flexbox, clean typography)
+- Add interactive JavaScript for functionality
 
-3. Layout:
-   .container { max-width: 1200px; margin: 0 auto; padding: 0 2rem; }
-   .section { padding: 4rem 0; }
-   .grid { display: grid; gap: 2rem; }
-   .flex { display: flex; align-items: center; }
+CRITICAL: You MUST return EXACTLY THREE separate code blocks in this exact format:
 
-4. Responsive:
-   @media (max-width: 768px) { /* Mobile styles */ }
-   @media (min-width: 769px) { /* Desktop styles */ }
+\`\`\`html
+<div class="container">
+  <h1>Your HTML content here</h1>
+  <!-- Only include the body content, no <html>, <head>, or <body> tags -->
+</div>
+\`\`\`
 
-5. Interactive Elements:
-   .btn { padding: 0.75rem 1.5rem; border-radius: 0.5rem; transition: all 0.3s ease; }
-   .card { background: white; border-radius: 0.75rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); padding: 2rem; }
+\`\`\`css
+/* Complete CSS styles */
+.container {
+  /* Your CSS styles here */
+}
+\`\`\`
 
-CONTENT REQUIREMENTS:
-- Generate REAL, PROFESSIONAL content (not lorem ipsum)
-- Create compelling headlines and descriptions
-- Add realistic testimonials, project details, and bios
-- Include relevant industry-specific information
-- Write authentic, engaging copy
-
-DESIGN REQUIREMENTS:
-- Modern, professional color scheme
-- Clean typography with proper hierarchy
-- Smooth animations and hover effects
-- Professional spacing and layout
-- Mobile-responsive design
-- Modern card designs and shadows
-
-FUNCTIONALITY REQUIREMENTS:
-- Working navigation with smooth scrolling
-- Contact forms with validation
-- Interactive buttons and links
-- Hover effects on all interactive elements
-- Mobile menu functionality
-
-EXAMPLE SECTIONS TO INCLUDE:
-- Hero section with compelling headline
-- About/Features section
-- Services/Portfolio section
-- Testimonials section
-- Contact section with form
-- Footer with social links
+\`\`\`javascript
+// Complete JavaScript code
+document.addEventListener('DOMContentLoaded', function() {
+  // Your JavaScript code here
+});
+\`\`\`
 
 IMPORTANT RULES:
-1. Return ONLY the complete HTML file
-2. Include ALL CSS in <style> tags
-3. Include ALL JavaScript in <script> tags
-4. Make it a SINGLE, COMPLETE file
-5. Ensure it works immediately when opened
-6. Use Google Fonts and Font Awesome icons
-7. Make it mobile-responsive
-8. Include real content, not placeholder text
+1. HTML block: Only include the body content (no DOCTYPE, html, head, body tags)
+2. CSS block: Include all styles needed for the website
+3. JavaScript block: Include all interactive functionality
+4. Each code block must be substantial and complete
+5. Do NOT include any explanatory text outside the code blocks
+6. Do NOT include empty code blocks
 
-Create a PROFESSIONAL, PRODUCTION-READY website that looks like it was built by an expert web developer. The website should be complete, functional, and visually appealing.
-`;
+Create a website that perfectly matches the user's request complexity and style!`;
 
-    // Use the correct model name
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // Use Gemini 2.5-flash model for faster generations
+    const model = genAI.getGenerativeModel({ 
+      model: "gemini-2.5-flash",
+      generationConfig: {
+        temperature: 1.0,
+        topP: 0.98,
+        topK: 128,
+        maxOutputTokens: 16384,
+      },
+    });
     
     const result = await model.generateContent(enhancedPrompt);
     const response = await result.response;
-    const generatedHTML = response.text();
+    const generated = response.text();
 
-    // Clean up the response (remove markdown formatting if any)
-    let cleanHTML = generatedHTML;
-    if (cleanHTML.includes('```html')) {
-      cleanHTML = cleanHTML.split('```html')[1]?.split('```')[0] || cleanHTML;
-    }
-    if (cleanHTML.includes('```')) {
-      cleanHTML = cleanHTML.split('```')[1] || cleanHTML;
-    }
+    // Parse the three code blocks with improved regex
+    const htmlMatch = generated.match(/```html\s*([\s\S]*?)```/i);
+    const cssMatch = generated.match(/```css\s*([\s\S]*?)```/i);
+    const jsMatch = generated.match(/```javascript\s*([\s\S]*?)```/i);
 
-    // Extract title from the generated HTML
-    const titleMatch = cleanHTML.match(/<title[^>]*>([^<]+)<\/title>/i);
-    const title = titleMatch ? titleMatch[1] : 'Generated Website';
+    const html = htmlMatch ? htmlMatch[1].trim() : '';
+    const css = cssMatch ? cssMatch[1].trim() : '';
+    const js = jsMatch ? jsMatch[1].trim() : '';
 
-    // Extract description from meta tags or generate one
-    const descMatch = cleanHTML.match(/<meta[^>]*name="description"[^>]*content="([^"]+)"/i);
-    const description = descMatch ? descMatch[1] : `AI-generated website based on: ${prompt}`;
+    // Compose a full HTML file for preview (for backward compatibility)
+    const fullHtml = `<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no\">\n<title>Generated Website</title>\n<link href=\"https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Poppins:wght@100..900&family=Montserrat:wght@100..900&display=swap\" rel=\"stylesheet\">\n<link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css\">\n<style>\n* { box-sizing: border-box; }\nbody { margin: 0; padding: 0; overflow-x: hidden; }\n${css}\n</style>\n</head>\n<body>\n${html}\n<script>\n${js}\n</script>\n</body>\n</html>`;
+
+    // Provide fallback content if parsing failed
+    const finalHtml = html || '<div class="p-8 text-center">HTML content not generated properly</div>';
+    const finalCss = css || '/* CSS content not generated properly */\nbody { font-family: Arial, sans-serif; padding: 20px; }';
+    const finalJs = js || '// JavaScript content not generated properly\nconsole.log("JavaScript not generated");';
 
     res.json({
       success: true,
       data: {
-        html: cleanHTML,
-        title: title,
-        description: description,
+        html: fullHtml,
+        htmlOnly: finalHtml,
+        cssOnly: finalCss,
+        jsOnly: finalJs,
         prompt: prompt,
         generatedAt: new Date().toISOString()
       }
@@ -233,4 +194,4 @@ app.listen(PORT, () => {
   console.log(`📱 Frontend: http://localhost:8080`);
   console.log(`🔧 Backend API: http://localhost:${PORT}/api`);
   console.log(`💚 Health check: http://localhost:${PORT}/api/health`);
-}); 
+});

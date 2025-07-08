@@ -6,11 +6,16 @@ import { ArrowLeft, Wand2, Download, Eye, Loader2, Copy, Check, Monitor, Tablet,
 import apiService from "@/lib/api";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import JSZip from "jszip";
 
 const Platform = () => {
   const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedCode, setGeneratedCode] = useState("");
+  const [generatedHtml, setGeneratedHtml] = useState("");
+  const [generatedCss, setGeneratedCss] = useState("");
+  const [generatedJs, setGeneratedJs] = useState("");
+  const [activeTab, setActiveTab] = useState<'html' | 'css' | 'js'>('html');
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
@@ -42,7 +47,10 @@ const Platform = () => {
       if (response.success && response.data) {
         setGenerationProgress(100);
         setTimeout(() => {
-          setGeneratedCode(response.data.html);
+          setGeneratedCode(response.data.html); // for preview iframe
+          setGeneratedHtml(response.data.htmlOnly || "");
+          setGeneratedCss(response.data.cssOnly || "");
+          setGeneratedJs(response.data.jsOnly || "");
           setIsPreviewMode(true);
           toast.success("Website generated successfully!");
           clearInterval(progressInterval);
@@ -63,27 +71,72 @@ const Platform = () => {
   };
 
   const handleCopyCode = async () => {
+    let codeToCopy = "";
+    if (activeTab === 'html') codeToCopy = generatedHtml;
+    else if (activeTab === 'css') codeToCopy = generatedCss;
+    else if (activeTab === 'js') codeToCopy = generatedJs;
+    
     try {
-      await navigator.clipboard.writeText(generatedCode);
+      await navigator.clipboard.writeText(codeToCopy);
       setIsCopied(true);
-      toast.success("Code copied to clipboard!");
+      toast.success(`${activeTab.toUpperCase()} code copied to clipboard!`);
       setTimeout(() => setIsCopied(false), 2000);
     } catch (error) {
       toast.error("Failed to copy code");
     }
   };
 
-  const handleDownload = () => {
-    const blob = new Blob([generatedCode], { type: "text/html" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "website.html";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    toast.success("Website downloaded!");
+  const handleDownload = async () => {
+    try {
+      const zip = new JSZip();
+      
+      // Create a complete HTML file with proper structure
+      const completeHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Generated Website</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Poppins:wght@100..900&family=Montserrat:wght@100..900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+${generatedHtml}
+<script src="script.js"></script>
+</body>
+</html>`;
+      
+      zip.file("index.html", completeHtml);
+      zip.file("styles.css", `/* Base styles for better compatibility */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+/* Generated styles */
+${generatedCss}`);
+      zip.file("script.js", generatedJs);
+      
+      const content = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(content);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "website.zip";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast.success("Website ZIP file downloaded!");
+    } catch (error) {
+      toast.error("Failed to create ZIP file");
+    }
   };
 
   const handleBackToHome = () => {
@@ -93,6 +146,10 @@ const Platform = () => {
   const handleNewGeneration = () => {
     setPrompt("");
     setGeneratedCode("");
+    setGeneratedHtml("");
+    setGeneratedCss("");
+    setGeneratedJs("");
+    setActiveTab('html');
     setIsPreviewMode(false);
     setIsCopied(false);
     setPreviewDevice('desktop');
@@ -110,21 +167,21 @@ const Platform = () => {
   const getPreviewDimensions = () => {
     switch (previewDevice) {
       case 'mobile':
-        return 'w-[375px] h-[667px]';
+        return 'w-[375px] h-[667px] max-h-[600px]';
       case 'tablet':
-        return 'w-[768px] h-[1024px]';
+        return 'w-[768px] h-[1024px] max-h-[700px]';
       case 'desktop':
       default:
-        return 'w-full h-full';
+        return 'w-full h-full min-h-[600px]';
     }
   };
 
   const getPreviewScale = () => {
     switch (previewDevice) {
       case 'mobile':
-        return 'scale-90';
+        return 'scale-[0.8]';
       case 'tablet':
-        return 'scale-75';
+        return 'scale-[0.65]';
       case 'desktop':
       default:
         return 'scale-100';
@@ -341,11 +398,46 @@ const Platform = () => {
                     className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/50 dark:hover:bg-gray-800/50 transition-all duration-300 hover:scale-105 border-gray-200/50 dark:border-gray-700/50"
                   >
                     <Download className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" />
-                    Download
+                    Download ZIP
                   </Button>
                 </div>
               </div>
-              <Card className="flex-1 h-[calc(100vh-280px)] shadow-lg hover:shadow-xl transition-all duration-300 border-gray-200/50 dark:border-gray-700/50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm mb-3">
+              
+              {/* Code Tabs */}
+              <div className="flex space-x-1 bg-gray-100/50 dark:bg-gray-800/50 rounded-lg p-1">
+                <button
+                  onClick={() => setActiveTab('html')}
+                  className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
+                    activeTab === 'html'
+                      ? 'bg-blue-500 text-white shadow-sm'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200/50 dark:hover:bg-gray-700/50'
+                  }`}
+                >
+                  HTML
+                </button>
+                <button
+                  onClick={() => setActiveTab('css')}
+                  className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
+                    activeTab === 'css'
+                      ? 'bg-blue-500 text-white shadow-sm'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200/50 dark:hover:bg-gray-700/50'
+                  }`}
+                >
+                  CSS
+                </button>
+                <button
+                  onClick={() => setActiveTab('js')}
+                  className={`flex-1 px-4 py-2 text-sm font-medium rounded-md transition-all duration-200 ${
+                    activeTab === 'js'
+                      ? 'bg-blue-500 text-white shadow-sm'
+                      : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-200/50 dark:hover:bg-gray-700/50'
+                  }`}
+                >
+                  JavaScript
+                </button>
+              </div>
+              
+              <Card className="flex-1 h-[calc(100vh-320px)] shadow-lg hover:shadow-xl transition-all duration-300 border-gray-200/50 dark:border-gray-700/50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm mb-3">
                 <CardContent className="p-0 h-full">
                   <div className="h-full bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950 rounded-lg relative">
                     <div className="absolute top-4 left-4 flex space-x-2 z-10">
@@ -355,7 +447,9 @@ const Platform = () => {
                     </div>
                     <div className="h-full overflow-auto pt-12 px-4 pb-4">
                       <pre className="text-sm text-gray-100 font-mono whitespace-pre-wrap leading-relaxed">
-                        {generatedCode}
+                        {activeTab === 'html' && (generatedHtml || "No HTML code available")}
+                        {activeTab === 'css' && (generatedCss || "No CSS code available")}
+                        {activeTab === 'js' && (generatedJs || "No JavaScript code available")}
                       </pre>
                     </div>
                   </div>
@@ -425,7 +519,7 @@ const Platform = () => {
                   </div>
                 </div>
               </div>
-              <Card className="flex-1 h-[calc(100vh-280px)] shadow-lg hover:shadow-xl transition-all duration-300 border-gray-200/50 dark:border-gray-700/50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm mb-3">
+              <Card className="flex-1 h-[calc(100vh-320px)] shadow-lg hover:shadow-xl transition-all duration-300 border-gray-200/50 dark:border-gray-700/50 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm mb-3">
                 <CardContent className="p-0 h-full">
                   <div className="h-full rounded-lg overflow-hidden relative bg-gray-100 dark:bg-gray-800">
                     <div className="absolute top-4 left-4 flex space-x-2 z-10 bg-white/10 backdrop-blur-sm rounded-full px-3 py-1">
@@ -433,13 +527,17 @@ const Platform = () => {
                       <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
                       <div className="w-3 h-3 bg-green-500 rounded-full"></div>
                     </div>
-                    <div className="h-full flex items-center justify-center p-4 pt-16">
-                      <div className={`${getPreviewDimensions()} ${getPreviewScale()} origin-center transition-all duration-500 shadow-2xl rounded-lg overflow-hidden bg-white dark:bg-gray-900`}>
+                    <div className="h-full flex items-start justify-center p-4 pt-16 overflow-auto">
+                      <div className={`${getPreviewDimensions()} ${getPreviewScale()} origin-top transition-all duration-500 shadow-2xl rounded-lg overflow-hidden bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 my-auto`}>
                         <iframe
                           srcDoc={generatedCode}
-                          className="w-full h-full border-0"
+                          className="w-full h-full border-0 rounded-lg"
                           sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
                           title="Website Preview"
+                          style={{
+                            minHeight: previewDevice === 'desktop' ? '600px' : 'auto',
+                            maxHeight: previewDevice === 'mobile' ? '600px' : previewDevice === 'tablet' ? '700px' : 'none'
+                          }}
                         />
                       </div>
                     </div>
