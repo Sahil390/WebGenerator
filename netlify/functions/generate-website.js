@@ -45,7 +45,7 @@ exports.handler = async (event, context) => {
   if (context.memoryLimitInMB) {
     console.log(`Memory limit: ${context.memoryLimitInMB}MB`);
   }
-  
+
   // Enable CORS
   const headers = {
     'Access-Control-Allow-Origin': '*',
@@ -156,13 +156,13 @@ exports.handler = async (event, context) => {
     let model;
     try {
       model = genAI.getGenerativeModel({ 
-        model: "gemini-1.5-flash", // Fast and reliable model
+        model: "gemini-2.5-flash", // Latest and best price-performance model
         generationConfig: {
-          temperature: 0.7,      // Slightly more focused responses
-          topP: 0.8,             // More deterministic
-          topK: 20,              // Reduced for consistency
-          maxOutputTokens: 3072, // Balanced for performance
-          candidateCount: 1,     // Single candidate for speed
+          temperature: 1.0,          // Higher creativity for better designs
+          topP: 0.98,               // More diverse responses
+          topK: 128,                // Increased for variety
+          maxOutputTokens: 16384,   // Higher limit for complex websites
+          candidateCount: 1,        // Single candidate for speed
         },
         // Add safety settings for production
         safetySettings: [
@@ -199,18 +199,61 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Optimized prompt for better reliability
-    const optimizedPrompt = `Create a modern, responsive website for: "${prompt}"
+    // Enhanced contextual prompt for adaptive website generation (separate HTML, CSS, JS)
+    const enhancedPrompt = `
+You are a PROFESSIONAL WEB DEVELOPER. Create a website based on the user's request with appropriate complexity and design.
 
-Generate a complete HTML document with:
-- Embedded CSS styling (no external files)
-- Responsive design
-- Professional appearance
-- Header, main content, and footer
-- Modern colors and typography
-- NO external links or navigation
+USER REQUEST: "${prompt}"
 
-Return only the HTML code without any markdown formatting.`;
+IMPORTANT: Match the complexity and design style to the user's request:
+- If it's a simple tool/calculator/utility: Create a clean, minimal, functional design
+- If it's a business/portfolio/marketing site: Create a modern, professional design
+- If it's a creative/artistic site: Create a visually stunning, award-winning design
+
+DESIGN GUIDELINES:
+- For simple tools: Focus on functionality, clean layout, minimal colors
+- For business sites: Professional, modern, trustworthy appearance
+- For creative sites: Bold, innovative, award-winning design trends
+
+MANDATORY REQUIREMENTS:
+- Use real images from Unsplash when appropriate (not for simple tools)
+- Make it responsive and mobile-friendly
+- Include proper hover effects and smooth transitions
+- Use modern CSS (Grid, Flexbox, clean typography)
+- Add interactive JavaScript for functionality
+
+CRITICAL: You MUST return EXACTLY THREE separate code blocks in this exact format:
+
+\`\`\`html
+<div class="container">
+  <h1>Your HTML content here</h1>
+  <!-- Only include the body content, no <html>, <head>, or <body> tags -->
+</div>
+\`\`\`
+
+\`\`\`css
+/* Complete CSS styles */
+.container {
+  /* Your CSS styles here */
+}
+\`\`\`
+
+\`\`\`javascript
+// Complete JavaScript code
+document.addEventListener('DOMContentLoaded', function() {
+  // Your JavaScript code here
+});
+\`\`\`
+
+IMPORTANT RULES:
+1. HTML block: Only include the body content (no DOCTYPE, html, head, body tags)
+2. CSS block: Include all styles needed for the website
+3. JavaScript block: Include all interactive functionality
+4. Each code block must be substantial and complete
+5. Do NOT include any explanatory text outside the code blocks
+6. Do NOT include empty code blocks
+
+Create a website that perfectly matches the user's request complexity and style!`;
 
     console.log('🚀 Starting content generation with optimized approach...');
     let result;
@@ -222,7 +265,7 @@ Return only the HTML code without any markdown formatting.`;
     try {
       console.log('🎯 Primary generation attempt...');
       genResult = await withTimeout(
-        model.generateContent(optimizedPrompt),
+        model.generateContent(enhancedPrompt),
         150000 // 2.5 minute timeout
       );
       console.log('✅ Primary generation succeeded');
@@ -357,6 +400,23 @@ Return only HTML code:`;
 
     console.log('✅ Website generated successfully');
     
+    // Parse the three code blocks with improved regex
+    const htmlMatch = generatedHTML.match(/```html\s*([\s\S]*?)```/i);
+    const cssMatch = generatedHTML.match(/```css\s*([\s\S]*?)```/i);
+    const jsMatch = generatedHTML.match(/```javascript\s*([\s\S]*?)```/i);
+
+    const html = htmlMatch ? htmlMatch[1].trim() : '';
+    const css = cssMatch ? cssMatch[1].trim() : '';
+    const js = jsMatch ? jsMatch[1].trim() : '';
+
+    // Compose a full HTML file for preview (for backward compatibility)
+    const fullHtml = `<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no\">\n<title>Generated Website</title>\n<link href=\"https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Poppins:wght@100..900&family=Montserrat:wght@100..900&display=swap\" rel=\"stylesheet\">\n<link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css\">\n<style>\n* { box-sizing: border-box; }\nbody { margin: 0; padding: 0; overflow-x: hidden; }\n${css}\n</style>\n</head>\n<body>\n${html}\n<script>\n${js}\n</script>\n</body>\n</html>`;
+
+    // Provide fallback content if parsing failed
+    const finalHtml = html || '<div class="p-8 text-center">HTML content not generated properly</div>';
+    const finalCss = css || '/* CSS content not generated properly */\nbody { font-family: Arial, sans-serif; padding: 20px; }';
+    const finalJs = js || '// JavaScript content not generated properly\nconsole.log("JavaScript not generated");';
+    
     // Clean up variables for memory management
     result = null;
     response = null;
@@ -367,7 +427,10 @@ Return only HTML code:`;
       body: JSON.stringify({
         success: true,
         data: {
-          html: generatedHTML,
+          html: fullHtml,
+          htmlOnly: finalHtml,
+          cssOnly: finalCss,
+          jsOnly: finalJs,
           title: title,
           description: description,
           prompt: prompt,
