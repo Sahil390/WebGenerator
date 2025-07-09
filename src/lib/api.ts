@@ -1,6 +1,6 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || (
   import.meta.env.PROD 
-    ? '/api'  // Use relative path in production (Netlify)
+    ? '/api'  // Use /api with redirect to Netlify functions
     : 'http://localhost:3001/api'  // Use localhost in development
 );
 
@@ -44,6 +44,11 @@ class ApiService {
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
     console.log('🌐 Making API request to:', url);
+    console.log('🔧 Request options:', { 
+      method: options.method || 'GET',
+      headers: options.headers,
+      bodyLength: options.body ? (options.body as string).length : 0
+    });
     
     const defaultOptions: RequestInit = {
       headers: {
@@ -61,6 +66,7 @@ class ApiService {
       });
 
       console.log('📥 Response status:', response.status, response.statusText);
+      console.log('📥 Response headers:', Object.fromEntries(response.headers.entries()));
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -69,7 +75,9 @@ class ApiService {
         // Create more descriptive error messages based on status and error type
         let errorMessage = errorData.error || `HTTP error! status: ${response.status}`;
         
-        if (response.status === 502) {
+        if (response.status === 404) {
+          errorMessage = `API endpoint not found: ${url}. This might be a deployment configuration issue.`;
+        } else if (response.status === 502) {
           if (errorData.errorType === 'TimeoutError') {
             errorMessage = 'The AI is taking longer than expected to generate your website. This often happens with very detailed prompts or during high traffic. Please try again with a simpler description.';
           } else if (errorData.errorType === 'ServerBusyError') {
@@ -89,6 +97,7 @@ class ApiService {
         (error as any).status = response.status;
         (error as any).errorType = errorData.errorType;
         (error as any).details = errorData.details;
+        (error as any).url = url;
         throw error;
       }
 
@@ -97,21 +106,30 @@ class ApiService {
       return data;
     } catch (error) {
       console.error('💥 API Request failed:', error);
+      console.error('💥 Request URL:', url);
+      console.error('💥 Request options:', options);
       
       // Handle timeout errors specifically
       if (error.name === 'TimeoutError' || error.name === 'AbortError') {
         const timeoutError = new Error('The request took too long to complete. Please try again with a shorter description.');
         (timeoutError as any).status = 504;
         (timeoutError as any).errorType = 'TimeoutError';
+        (timeoutError as any).url = url;
         throw timeoutError;
       }
       
       // Handle network errors
       if (error.message.includes('Failed to fetch') || error.message.includes('network')) {
-        const networkError = new Error('Network error. Please check your internet connection and try again.');
+        const networkError = new Error(`Network error when connecting to ${url}. Please check your internet connection and try again.`);
         (networkError as any).status = 502;
         (networkError as any).errorType = 'NetworkError';
+        (networkError as any).url = url;
         throw networkError;
+      }
+      
+      // Add URL to existing errors
+      if (error.url === undefined) {
+        (error as any).url = url;
       }
       
       throw error;
