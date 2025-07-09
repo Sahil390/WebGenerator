@@ -225,6 +225,22 @@ Make it modern, responsive, and professional. Return only the 3 code blocks abov
           stack: error.stack?.substring(0, 200)
         });
         
+        // Check if this is a 503 overloaded error - return immediately without retry
+        if (error.message.includes('503') || error.message.includes('overloaded') || error.message.includes('Service Unavailable')) {
+          console.log('❌ Gemini API is overloaded, returning user-friendly error immediately');
+          return {
+            statusCode: 503,
+            headers,
+            body: JSON.stringify({
+              success: false,
+              error: 'AI service temporarily overloaded',
+              details: 'The AI service is currently experiencing high demand. Please wait 1-2 minutes and try again. Your request will be processed with full quality once the service is available.',
+              errorType: 'ServiceOverloadedError',
+              retryAfter: 60 // Suggest retry after 60 seconds
+            })
+          };
+        }
+        
         // If this is the last attempt or it's not a retryable error, continue to fallback
         if (attempts >= maxAttempts || error.message.includes('API key') || error.message.includes('quota')) {
           console.log('Moving to fallback after all attempts failed');
@@ -294,6 +310,20 @@ Make it professional and complete.`;
                   error: 'Service temporarily unavailable',
                   details: 'The AI service is currently experiencing high demand. Please wait 30 seconds and try again.',
                   errorType: 'RateLimitError'
+                })
+              };
+            }
+            
+            // Check for 503 Service Unavailable (overloaded)
+            if (lastError.includes('503') || lastError.includes('overloaded') || lastError.includes('Service Unavailable')) {
+              return {
+                statusCode: 503,
+                headers,
+                body: JSON.stringify({
+                  success: false,
+                  error: 'AI service temporarily overloaded',
+                  details: 'The AI service is currently overloaded due to high demand. Please wait 1-2 minutes and try again. This is a temporary issue from Google\'s servers.',
+                  errorType: 'ServiceOverloadedError'
                 })
               };
             }

@@ -89,6 +89,12 @@ class ApiService {
           } else {
             errorMessage = 'The AI service is temporarily unavailable. Please try again in a few moments.';
           }
+        } else if (response.status === 503) {
+          if (errorData.errorType === 'ServiceOverloadedError') {
+            errorMessage = 'The AI service is currently overloaded due to high demand. Please wait 1-2 minutes and try again. This is a temporary issue that will resolve shortly.';
+          } else {
+            errorMessage = 'The AI service is temporarily unavailable due to high demand. Please try again in a few moments.';
+          }
         } else if (response.status === 429) {
           errorMessage = 'The AI service is experiencing high demand. Please wait 30 seconds and try again.';
         } else if (response.status === 500) {
