@@ -28,6 +28,9 @@
 [functions."test-generate"]  
   timeout = 60
 
+[functions."test-simple"]  
+  timeout = 10
+
 [functions."debug-deployment"]  
   timeout = 10
 

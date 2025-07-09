@@ -68,7 +68,7 @@ exports.handler = async (event, context) => {
         body: JSON.stringify({
           success: false,
           error: 'Gemini API key not configured',
-          details: 'Please set the GEMINI_API_KEY environment variable'
+          details: 'Please set the GEMINI_API_KEY environment variable in Netlify dashboard'
         })
       };
     }
