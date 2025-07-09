@@ -68,7 +68,7 @@ exports.handler = async (event, context) => {
         body: JSON.stringify({
           success: false,
           error: 'Gemini API key not configured',
-          details: 'Please set the GEMINI_API_KEY environment variable in Netlify dashboard'
+          details: 'Please set the GEMINI_API_KEY environment variable'
         })
       };
     }
@@ -121,9 +121,9 @@ exports.handler = async (event, context) => {
       model = genAI.getGenerativeModel({ 
         model: "gemini-1.5-flash",
         generationConfig: {
-          temperature: 1.0,
-          topP: 0.98,
-          topK: 128,
+          temperature: 0.9, // Slightly lower for more consistent quality
+          topP: 0.95,
+          topK: 64,
           maxOutputTokens: 8192,
           candidateCount: 1,
         },
@@ -218,109 +218,145 @@ Create a website that perfectly matches the user's request complexity and style!
 
     console.log('🚀 Starting content generation with optimized approach...');
     
-    // Enhanced generation with progressive timeout and retry logic
+    // Enhanced generation with retry logic for better reliability
     let genResult;
+    let attempts = 0;
+    const maxAttempts = 2;
     
-    // Primary attempt with optimized timeout
-    try {
-      console.log('🎯 Primary generation attempt...');
-      console.log('🔧 Model details:', {
-        model: 'gemini-1.5-flash',
-        maxTokens: 8192,
-        temperature: 1.0
-      });
-      
-      genResult = await withTimeout(
-        model.generateContent(enhancedPrompt),
-        240000 // 4 minute timeout for Netlify (under 5 min limit)
-      );
-      console.log('✅ Primary generation succeeded');
-    } catch (primaryError) {
-      console.log('⚠️ Primary generation failed:', {
-        message: primaryError.message,
-        name: primaryError.name,
-        stack: primaryError.stack?.substring(0, 200)
-      });
-      
-      // If primary fails, try with simplified prompt
-      const fallbackPrompt = `Create a website for: "${prompt}"
+    // Primary attempt with retry logic
+    while (attempts < maxAttempts) {
+      try {
+        attempts++;
+        console.log(`🎯 Generation attempt ${attempts}/${maxAttempts}...`);
+        console.log('🔧 Model details:', {
+          model: 'gemini-1.5-flash',
+          maxTokens: 8192,
+          temperature: 0.9
+        });
+        
+        genResult = await withTimeout(
+          model.generateContent(enhancedPrompt),
+          280000 // 4 minutes 40 seconds (under 5 min Netlify limit)
+        );
+        console.log('✅ Generation succeeded on attempt', attempts);
+        break;
+      } catch (error) {
+        console.log(`⚠️ Generation attempt ${attempts} failed:`, {
+          message: error.message,
+          name: error.name,
+          stack: error.stack?.substring(0, 200)
+        });
+        
+        // If this is the last attempt or it's not a retryable error, continue to fallback
+        if (attempts >= maxAttempts || error.message.includes('API key') || error.message.includes('quota')) {
+          console.log('Moving to fallback after all attempts failed');
+          
+          // Try with simplified but still high-quality prompt
+          const fallbackPrompt = `Create a professional website for: "${prompt}"
 
-Generate three separate code blocks:
+You are an expert web developer. Create a high-quality, modern website that matches the user's request.
+
+Requirements:
+- Modern, responsive design
+- Clean, professional appearance
+- Smooth animations and interactions
+- Mobile-friendly layout
+- High-quality visuals and typography
+
+Return exactly these three code blocks:
 
 \`\`\`html
-<div>Your content here</div>
+<div class="website-container">
+  <header class="header">
+    <h1>Your professional content here</h1>
+  </header>
+  <main class="main-content">
+    <!-- Complete website content -->
+  </main>
+</div>
 \`\`\`
 
 \`\`\`css
-/* Your styles here */
+/* Complete professional CSS styles */
+.website-container {
+  font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  /* Your complete styles here */
+}
 \`\`\`
 
 \`\`\`javascript
-// Your code here
+// Complete interactive JavaScript
+document.addEventListener('DOMContentLoaded', function() {
+  // Your complete interactive code here
+});
 \`\`\`
 
-Return only the three code blocks above.`;
+Create a beautiful, professional website that fully addresses the user's request.`;
 
-      try {
-        console.log('🔄 Attempting fallback generation...');
-        console.log('🔧 Using simplified prompt, length:', fallbackPrompt.length);
-        
-        genResult = await withTimeout(
-          model.generateContent(fallbackPrompt),
-          180000 // 3 minute timeout for fallback
-        );
-        console.log('✅ Fallback generation succeeded');
-      } catch (fallbackError) {
-        console.error('❌ All generation attempts failed');
-        console.error('Primary error:', {
-          message: primaryError.message,
-          name: primaryError.name
-        });
-        console.error('Fallback error:', {
-          message: fallbackError.message,
-          name: fallbackError.name
-        });
-        
-        // Check error types and return appropriate response
-        const lastError = fallbackError.message || primaryError.message;
-        
-        if (lastError.includes('timed out') || lastError.includes('timeout')) {
-          return {
-            statusCode: 502,
-            headers,
-            body: JSON.stringify({
-              success: false,
-              error: 'Request timeout',
-              details: 'The AI service is taking longer than expected. This usually happens during high traffic. Please try again in a few moments with a shorter description.',
-              errorType: 'TimeoutError'
-            })
-          };
+          try {
+            console.log('🔄 Attempting high-quality fallback generation...');
+            
+            genResult = await withTimeout(
+              model.generateContent(fallbackPrompt),
+              240000 // 4 minute timeout for fallback (still high quality)
+            );
+            console.log('✅ Fallback generation succeeded');
+            break;
+          } catch (fallbackError) {
+            console.error('❌ All generation attempts failed');
+            console.error('Final error:', {
+              message: fallbackError.message,
+              name: fallbackError.name
+            });
+            
+            // Return appropriate error response
+            const lastError = fallbackError.message || error.message;
+            
+            if (lastError.includes('timed out') || lastError.includes('timeout')) {
+              return {
+                statusCode: 502,
+                headers,
+                body: JSON.stringify({
+                  success: false,
+                  error: 'Generation timeout',
+                  details: 'The AI is taking longer than expected to create your high-quality website. Please try again with a slightly simpler description, or wait a moment and try again.',
+                  errorType: 'TimeoutError'
+                })
+              };
+            }
+            
+            if (lastError.includes('rate limit') || lastError.includes('quota') || lastError.includes('429')) {
+              return {
+                statusCode: 429,
+                headers,
+                body: JSON.stringify({
+                  success: false,
+                  error: 'Service temporarily unavailable',
+                  details: 'The AI service is currently experiencing high demand. Please wait 30 seconds and try again.',
+                  errorType: 'RateLimitError'
+                })
+              };
+            }
+            
+            // Generic error
+            return {
+              statusCode: 502,
+              headers,
+              body: JSON.stringify({
+                success: false,
+                error: 'Service temporarily unavailable',
+                details: 'Please try again in a few moments. The AI service is optimizing for quality.',
+                errorType: 'ServiceError'
+              })
+            };
+          }
         }
         
-        if (lastError.includes('rate limit') || lastError.includes('quota') || lastError.includes('429')) {
-          return {
-            statusCode: 429,
-            headers,
-            body: JSON.stringify({
-              success: false,
-              error: 'Service temporarily unavailable',
-              details: 'The AI service is currently experiencing high demand. Please wait 30 seconds and try again.',
-              errorType: 'RateLimitError'
-            })
-          };
+        // Wait a bit before retry
+        if (attempts < maxAttempts) {
+          console.log('Waiting 2 seconds before retry...');
+          await new Promise(resolve => setTimeout(resolve, 2000));
         }
-        
-        // Generic error
-        return {
-          statusCode: 502,
-          headers,
-          body: JSON.stringify({
-            success: false,
-            error: 'Service temporarily unavailable',
-            details: 'Please try again in a few moments. If the problem persists, try using a shorter, simpler description.',
-            errorType: 'ServiceError'
-          })
-        };
       }
     }
     
@@ -331,7 +367,7 @@ Return only the three code blocks above.`;
       console.log('🔄 Processing AI response...');
       response = await withTimeout(
         genResult.response,
-        60000 // 1 minute timeout for response processing
+        90000 // 1.5 minute timeout for response processing
       );
       console.log('✅ Response processed successfully');
       

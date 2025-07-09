@@ -14,7 +14,7 @@
 
 [functions."generate-website"]
   timeout = 300
-  memory = 1024
+  memory = 3008
 
 [functions."health"]
   timeout = 10
@@ -27,9 +27,6 @@
 
 [functions."test-generate"]  
   timeout = 60
-
-[functions."test-simple"]  
-  timeout = 10
 
 [functions."debug-deployment"]  
   timeout = 10
