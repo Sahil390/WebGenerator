@@ -20,6 +20,8 @@ const Platform = () => {
   const [isCopied, setIsCopied] = useState(false);
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
   const [generationProgress, setGenerationProgress] = useState(0);
+  const [lastError, setLastError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   const navigate = useNavigate();
 
   const handleGenerate = async () => {
@@ -30,6 +32,7 @@ const Platform = () => {
 
     setIsGenerating(true);
     setGenerationProgress(0);
+    setLastError(null); // Clear any previous errors
 
     // Simulate progress updates
     const progressInterval = setInterval(() => {
@@ -52,6 +55,7 @@ const Platform = () => {
           setGeneratedCss(response.data.cssOnly || "");
           setGeneratedJs(response.data.jsOnly || "");
           setIsPreviewMode(true);
+          setRetryCount(0); // Reset retry count on success
           toast.success("Website generated successfully!");
           clearInterval(progressInterval);
         }, 500);
@@ -60,7 +64,55 @@ const Platform = () => {
       }
     } catch (error) {
       console.error("Generation error:", error);
-      toast.error("Failed to generate website. Please try again.");
+      
+      // Show specific error messages based on error type
+      let errorMessage = "Failed to generate website. Please try again.";
+      let isOverloadError = false;
+      
+      if (error instanceof Error) {
+        const errorMsg = error.message.toLowerCase();
+        
+        if (errorMsg.includes('overloaded') || errorMsg.includes('503')) {
+          errorMessage = "🚫 AI service is currently overloaded. Please wait 30-60 seconds and try again.";
+          isOverloadError = true;
+        } else if (errorMsg.includes('timeout') || errorMsg.includes('504')) {
+          errorMessage = "⏱️ Request timed out. Please try again with a shorter description.";
+        } else if (errorMsg.includes('rate limit') || errorMsg.includes('429')) {
+          errorMessage = "🔄 Rate limit exceeded. Please wait a moment before trying again.";
+        } else if (errorMsg.includes('network') || errorMsg.includes('fetch')) {
+          errorMessage = "🌐 Network error. Please check your connection and try again.";
+        } else if (errorMsg.includes('invalid') || errorMsg.includes('400')) {
+          errorMessage = "❌ Invalid request. Please check your description and try again.";
+        } else if (error.message && error.message.length > 10) {
+          // Use the specific error message from API if it's meaningful
+          errorMessage = error.message;
+        }
+      }
+      
+      setLastError(errorMessage);
+      setRetryCount(prev => prev + 1);
+      
+      // Show toast with retry guidance for overload errors
+      if (isOverloadError) {
+        toast.error(errorMessage, { 
+          duration: 8000,
+          action: {
+            label: "Auto-retry in 30s",
+            onClick: () => {}
+          }
+        });
+        
+        // Auto-retry after 30 seconds for overload errors (max 2 retries)
+        if (retryCount < 2) {
+          setTimeout(() => {
+            toast.info("⏳ Retrying generation...");
+            handleGenerate();
+          }, 30000);
+        }
+      } else {
+        toast.error(errorMessage, { duration: 5000 });
+      }
+      
       clearInterval(progressInterval);
     } finally {
       setTimeout(() => {
@@ -154,6 +206,8 @@ ${generatedCss}`);
     setIsCopied(false);
     setPreviewDevice('desktop');
     setGenerationProgress(0);
+    setLastError(null);
+    setRetryCount(0);
   };
 
   const handleOpenInNewTab = () => {
@@ -359,6 +413,55 @@ ${generatedCss}`);
                     </>
                   )}
                 </Button>
+
+                {/* Error Display and Retry Section */}
+                {lastError && (
+                  <div className="mt-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg animate-slide-down">
+                    <div className="flex items-start space-x-3">
+                      <div className="w-5 h-5 text-red-500 mt-0.5">⚠️</div>
+                      <div className="flex-1">
+                        <p className="text-red-700 dark:text-red-300 text-sm font-medium">
+                          {lastError}
+                        </p>
+                        {lastError.includes('overloaded') && (
+                          <div className="mt-3 space-y-2">
+                            <p className="text-red-600 dark:text-red-400 text-xs">
+                              💡 <strong>Tips:</strong> The AI service experiences high demand. It usually resolves within 1-2 minutes.
+                            </p>
+                            <div className="flex items-center space-x-2">
+                              <Button
+                                onClick={() => {
+                                  setLastError(null);
+                                  setRetryCount(0);
+                                  handleGenerate();
+                                }}
+                                size="sm"
+                                variant="outline"
+                                className="text-red-600 dark:text-red-400 border-red-300 dark:border-red-700 hover:bg-red-100 dark:hover:bg-red-900/30"
+                              >
+                                🔄 Retry Now
+                              </Button>
+                              <span className="text-xs text-red-500 dark:text-red-400">
+                                Retry #{retryCount}/3
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                        {(lastError.includes('timeout') || lastError.includes('504')) && (
+                          <p className="text-red-600 dark:text-red-400 text-xs mt-2">
+                            💡 <strong>Tip:</strong> Try a shorter, more concise description to reduce processing time.
+                          </p>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => setLastError(null)}
+                        className="text-red-400 hover:text-red-600 dark:text-red-500 dark:hover:text-red-300 transition-colors"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
