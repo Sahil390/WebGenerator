@@ -11,8 +11,15 @@ const withTimeout = (promise, timeoutMs) => {
 };
 
 exports.handler = async (event, context) => {
-  // Set function timeout context
+  // Set function timeout context properly
   context.callbackWaitsForEmptyEventLoop = false;
+  
+  // Log the actual timeout settings
+  console.log('Function execution context:', {
+    functionName: context.functionName,
+    memoryLimitInMB: context.memoryLimitInMB,
+    remainingTimeInMillis: context.getRemainingTimeInMillis()
+  });
 
   // Enable CORS
   const headers = {
@@ -161,60 +168,31 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Enhanced contextual prompt
-    const enhancedPrompt = `You are a PROFESSIONAL WEB DEVELOPER. Create a website based on the user's request with appropriate complexity and design.
+    // Optimized prompt for fast, high-quality generation
+    const enhancedPrompt = `Create a professional website for: "${prompt}"
 
-USER REQUEST: "${prompt}"
-
-IMPORTANT: Match the complexity and design style to the user's request:
-- If it's a simple tool/calculator/utility: Create a clean, minimal, functional design
-- If it's a business/portfolio/marketing site: Create a modern, professional design
-- If it's a creative/artistic site: Create a visually stunning, award-winning design
-
-DESIGN GUIDELINES:
-- For simple tools: Focus on functionality, clean layout, minimal colors
-- For business sites: Professional, modern, trustworthy appearance
-- For creative sites: Bold, innovative, award-winning design trends
-
-MANDATORY REQUIREMENTS:
-- Use real images from Unsplash when appropriate (not for simple tools)
-- Make it responsive and mobile-friendly
-- Include proper hover effects and smooth transitions
-- Use modern CSS (Grid, Flexbox, clean typography)
-- Add interactive JavaScript for functionality
-
-CRITICAL: You MUST return EXACTLY THREE separate code blocks in this exact format:
+Generate exactly 3 code blocks:
 
 \`\`\`html
 <div class="container">
-  <h1>Your HTML content here</h1>
-  <!-- Only include the body content, no <html>, <head>, or <body> tags -->
+  <header><h1>Professional Title</h1></header>
+  <main>Complete content here</main>
+  <footer>Footer content</footer>
 </div>
 \`\`\`
 
 \`\`\`css
-/* Complete CSS styles */
-.container {
-  /* Your CSS styles here */
-}
+.container { font-family: 'Inter', sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; }
+/* Add complete professional styles */
 \`\`\`
 
 \`\`\`javascript
-// Complete JavaScript code
 document.addEventListener('DOMContentLoaded', function() {
-  // Your JavaScript code here
+  // Add complete interactivity
 });
 \`\`\`
 
-IMPORTANT RULES:
-1. HTML block: Only include the body content (no DOCTYPE, html, head, body tags)
-2. CSS block: Include all styles needed for the website
-3. JavaScript block: Include all interactive functionality
-4. Each code block must be substantial and complete
-5. Do NOT include any explanatory text outside the code blocks
-6. Do NOT include empty code blocks
-
-Create a website that perfectly matches the user's request complexity and style!`;
+Make it modern, responsive, and professional. Return only the 3 code blocks above.`;
 
     console.log('🚀 Starting content generation with optimized approach...');
     
@@ -236,7 +214,7 @@ Create a website that perfectly matches the user's request complexity and style!
         
         genResult = await withTimeout(
           model.generateContent(enhancedPrompt),
-          280000 // 4 minutes 40 seconds (under 5 min Netlify limit)
+          8000 // 8 seconds to stay under the 10-second Netlify limit
         );
         console.log('✅ Generation succeeded on attempt', attempts);
         break;
@@ -251,54 +229,36 @@ Create a website that perfectly matches the user's request complexity and style!
         if (attempts >= maxAttempts || error.message.includes('API key') || error.message.includes('quota')) {
           console.log('Moving to fallback after all attempts failed');
           
-          // Try with simplified but still high-quality prompt
-          const fallbackPrompt = `Create a professional website for: "${prompt}"
+          // Quick but high-quality fallback prompt
+          const fallbackPrompt = `Professional website: "${prompt}"
 
-You are an expert web developer. Create a high-quality, modern website that matches the user's request.
-
-Requirements:
-- Modern, responsive design
-- Clean, professional appearance
-- Smooth animations and interactions
-- Mobile-friendly layout
-- High-quality visuals and typography
-
-Return exactly these three code blocks:
+3 code blocks:
 
 \`\`\`html
-<div class="website-container">
-  <header class="header">
-    <h1>Your professional content here</h1>
-  </header>
-  <main class="main-content">
-    <!-- Complete website content -->
-  </main>
+<div class="site">
+  <h1>Title</h1>
+  <p>Content</p>
 </div>
 \`\`\`
 
 \`\`\`css
-/* Complete professional CSS styles */
-.website-container {
-  font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  /* Your complete styles here */
-}
+.site { font-family: Arial; padding: 20px; max-width: 800px; margin: 0 auto; }
 \`\`\`
 
 \`\`\`javascript
-// Complete interactive JavaScript
 document.addEventListener('DOMContentLoaded', function() {
-  // Your complete interactive code here
+  console.log('Ready');
 });
 \`\`\`
 
-Create a beautiful, professional website that fully addresses the user's request.`;
+Make it professional and complete.`;
 
           try {
             console.log('🔄 Attempting high-quality fallback generation...');
             
             genResult = await withTimeout(
               model.generateContent(fallbackPrompt),
-              240000 // 4 minute timeout for fallback (still high quality)
+              6000 // 6 seconds for fallback
             );
             console.log('✅ Fallback generation succeeded');
             break;
@@ -367,7 +327,7 @@ Create a beautiful, professional website that fully addresses the user's request
       console.log('🔄 Processing AI response...');
       response = await withTimeout(
         genResult.response,
-        90000 // 1.5 minute timeout for response processing
+        2000 // 2 seconds for response processing
       );
       console.log('✅ Response processed successfully');
       
