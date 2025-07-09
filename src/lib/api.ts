@@ -36,6 +36,11 @@ class ApiService {
   constructor(baseURL: string = API_BASE_URL) {
     this.baseURL = baseURL;
     console.log('🔧 API Service initialized with baseURL:', this.baseURL);
+    console.log('🌍 Environment:', {
+      isProd: import.meta.env.PROD,
+      mode: import.meta.env.MODE,
+      customApiUrl: import.meta.env.VITE_API_URL
+    });
   }
 
   private async request<T>(
@@ -55,8 +60,7 @@ class ApiService {
         'Content-Type': 'application/json',
         ...options.headers,
       },
-      // Set a reasonable timeout for the frontend request
-      signal: AbortSignal.timeout(320000), // 5 min 20 sec (20 sec buffer over backend)
+      // Remove AbortSignal.timeout for better compatibility
     };
 
     try {
@@ -119,7 +123,7 @@ class ApiService {
       }
       
       // Handle network errors
-      if (error.message.includes('Failed to fetch') || error.message.includes('network')) {
+      if (error.message && (error.message.includes('Failed to fetch') || error.message.includes('network') || error.message.includes('NetworkError'))) {
         const networkError = new Error(`Network error when connecting to ${url}. Please check your internet connection and try again.`);
         (networkError as any).status = 502;
         (networkError as any).errorType = 'NetworkError';
@@ -128,7 +132,7 @@ class ApiService {
       }
       
       // Add URL to existing errors
-      if (error.url === undefined) {
+      if (error && typeof error === 'object' && !('url' in error)) {
         (error as any).url = url;
       }
       
