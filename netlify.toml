@@ -22,6 +22,15 @@
 [functions."test"]  
   timeout = 10
 
+[functions."simple-test"]  
+  timeout = 120
+
+[functions."test-generate"]  
+  timeout = 60
+
+[functions."debug"]  
+  timeout = 10
+
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"

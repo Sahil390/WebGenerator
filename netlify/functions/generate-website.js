@@ -42,10 +42,21 @@ exports.handler = async (event, context) => {
 
   try {
     console.log('🔥 Website generation request received');
+    console.log('🌐 Request details:', {
+      method: event.httpMethod,
+      path: event.path,
+      headers: event.headers,
+      bodyExists: !!event.body,
+      bodyLength: event.body ? event.body.length : 0,
+      queryParams: event.queryStringParameters
+    });
     console.log('Environment check:', {
       hasApiKey: !!process.env.GEMINI_API_KEY,
       apiKeyLength: process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.length : 0,
-      nodeVersion: process.version
+      nodeVersion: process.version,
+      region: process.env.AWS_REGION || 'unknown',
+      functionName: context.functionName || 'unknown',
+      memoryLimit: context.memoryLimitInMB || 'unknown'
     });
     
     // Check if API key is configured
@@ -101,35 +112,54 @@ exports.handler = async (event, context) => {
     console.log('📝 Generating website for:', prompt.substring(0, 100) + '...');
 
     // Initialize Gemini AI
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ 
-      model: "gemini-2.5-flash",
-      generationConfig: {
-        temperature: 1.0,
-        topP: 0.98,
-        topK: 128,
-        maxOutputTokens: 16384,
-        candidateCount: 1,
-      },
-      safetySettings: [
-        {
-          category: "HARM_CATEGORY_HARASSMENT",
-          threshold: "BLOCK_MEDIUM_AND_ABOVE"
+    console.log('🤖 Initializing Gemini AI...');
+    let genAI, model;
+    try {
+      genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+      console.log('✅ GoogleGenerativeAI instance created');
+      
+      model = genAI.getGenerativeModel({ 
+        model: "gemini-1.5-flash",
+        generationConfig: {
+          temperature: 1.0,
+          topP: 0.98,
+          topK: 128,
+          maxOutputTokens: 8192,
+          candidateCount: 1,
         },
-        {
-          category: "HARM_CATEGORY_HATE_SPEECH", 
-          threshold: "BLOCK_MEDIUM_AND_ABOVE"
-        },
-        {
-          category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
-          threshold: "BLOCK_MEDIUM_AND_ABOVE"
-        },
-        {
-          category: "HARM_CATEGORY_DANGEROUS_CONTENT",
-          threshold: "BLOCK_MEDIUM_AND_ABOVE"
-        }
-      ]
-    });
+        safetySettings: [
+          {
+            category: "HARM_CATEGORY_HARASSMENT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          },
+          {
+            category: "HARM_CATEGORY_HATE_SPEECH", 
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          },
+          {
+            category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          },
+          {
+            category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+            threshold: "BLOCK_MEDIUM_AND_ABOVE"
+          }
+        ]
+      });
+      console.log('✅ Gemini model configured successfully');
+    } catch (initError) {
+      console.error('❌ Failed to initialize Gemini AI:', initError);
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          error: 'AI initialization failed',
+          details: initError.message,
+          errorType: 'InitializationError'
+        })
+      };
+    }
 
     // Enhanced contextual prompt
     const enhancedPrompt = `You are a PROFESSIONAL WEB DEVELOPER. Create a website based on the user's request with appropriate complexity and design.
@@ -186,29 +216,166 @@ IMPORTANT RULES:
 
 Create a website that perfectly matches the user's request complexity and style!`;
 
-    console.log('🚀 Starting content generation...');
+    console.log('🚀 Starting content generation with optimized approach...');
     
-    // Generate content with timeout
-    const genResult = await withTimeout(
-      model.generateContent(enhancedPrompt),
-      120000 // 2 minute timeout
-    );
+    // Enhanced generation with progressive timeout and retry logic
+    let genResult;
     
-    console.log('✅ Content generated successfully');
+    // Primary attempt with optimized timeout
+    try {
+      console.log('🎯 Primary generation attempt...');
+      console.log('🔧 Model details:', {
+        model: 'gemini-1.5-flash',
+        maxTokens: 8192,
+        temperature: 1.0
+      });
+      
+      genResult = await withTimeout(
+        model.generateContent(enhancedPrompt),
+        240000 // 4 minute timeout for Netlify (under 5 min limit)
+      );
+      console.log('✅ Primary generation succeeded');
+    } catch (primaryError) {
+      console.log('⚠️ Primary generation failed:', {
+        message: primaryError.message,
+        name: primaryError.name,
+        stack: primaryError.stack?.substring(0, 200)
+      });
+      
+      // If primary fails, try with simplified prompt
+      const fallbackPrompt = `Create a website for: "${prompt}"
+
+Generate three separate code blocks:
+
+\`\`\`html
+<div>Your content here</div>
+\`\`\`
+
+\`\`\`css
+/* Your styles here */
+\`\`\`
+
+\`\`\`javascript
+// Your code here
+\`\`\`
+
+Return only the three code blocks above.`;
+
+      try {
+        console.log('🔄 Attempting fallback generation...');
+        console.log('🔧 Using simplified prompt, length:', fallbackPrompt.length);
+        
+        genResult = await withTimeout(
+          model.generateContent(fallbackPrompt),
+          180000 // 3 minute timeout for fallback
+        );
+        console.log('✅ Fallback generation succeeded');
+      } catch (fallbackError) {
+        console.error('❌ All generation attempts failed');
+        console.error('Primary error:', {
+          message: primaryError.message,
+          name: primaryError.name
+        });
+        console.error('Fallback error:', {
+          message: fallbackError.message,
+          name: fallbackError.name
+        });
+        
+        // Check error types and return appropriate response
+        const lastError = fallbackError.message || primaryError.message;
+        
+        if (lastError.includes('timed out') || lastError.includes('timeout')) {
+          return {
+            statusCode: 502,
+            headers,
+            body: JSON.stringify({
+              success: false,
+              error: 'Request timeout',
+              details: 'The AI service is taking longer than expected. This usually happens during high traffic. Please try again in a few moments with a shorter description.',
+              errorType: 'TimeoutError'
+            })
+          };
+        }
+        
+        if (lastError.includes('rate limit') || lastError.includes('quota') || lastError.includes('429')) {
+          return {
+            statusCode: 429,
+            headers,
+            body: JSON.stringify({
+              success: false,
+              error: 'Service temporarily unavailable',
+              details: 'The AI service is currently experiencing high demand. Please wait 30 seconds and try again.',
+              errorType: 'RateLimitError'
+            })
+          };
+        }
+        
+        // Generic error
+        return {
+          statusCode: 502,
+          headers,
+          body: JSON.stringify({
+            success: false,
+            error: 'Service temporarily unavailable',
+            details: 'Please try again in a few moments. If the problem persists, try using a shorter, simpler description.',
+            errorType: 'ServiceError'
+          })
+        };
+      }
+    }
     
-    // Process the response
-    const response = genResult.response;
-    const generatedHTML = response.text();
+    // Process the response with better error handling
+    let response, generatedHTML;
     
-    console.log('📄 Response processed:', {
-      htmlLength: generatedHTML.length,
-      hasCodeBlocks: generatedHTML.includes('```'),
-      htmlBlockCount: (generatedHTML.match(/```html/gi) || []).length,
-      cssBlockCount: (generatedHTML.match(/```css/gi) || []).length,
-      jsBlockCount: (generatedHTML.match(/```javascript/gi) || []).length
-    });
-    
-    // Parse the three code blocks
+    try {
+      console.log('🔄 Processing AI response...');
+      response = await withTimeout(
+        genResult.response,
+        60000 // 1 minute timeout for response processing
+      );
+      console.log('✅ Response processed successfully');
+      
+      // Extract text immediately to avoid memory issues
+      generatedHTML = response.text();
+      console.log('📄 Text extracted successfully', {
+        htmlLength: generatedHTML.length,
+        hasCodeBlocks: generatedHTML.includes('```'),
+        htmlBlockCount: (generatedHTML.match(/```html/gi) || []).length,
+        cssBlockCount: (generatedHTML.match(/```css/gi) || []).length,
+        jsBlockCount: (generatedHTML.match(/```javascript/gi) || []).length
+      });
+      
+      // Clean up AI objects immediately
+      genResult = null;
+      response = null;
+      
+      // Force garbage collection hint (Node.js specific)
+      if (global.gc) {
+        global.gc();
+      }
+      
+    } catch (responseError) {
+      console.error('❌ Response processing failed:', responseError);
+      
+      // Clean up on error
+      genResult = null;
+      response = null;
+      
+      return {
+        statusCode: 502,
+        headers,
+        body: JSON.stringify({
+          success: false,
+          error: 'Response processing failed',
+          details: responseError.message.includes('timed out') 
+            ? 'Server is temporarily busy processing your request. Please try again in a moment.' 
+            : 'Failed to process AI response. Please try again.',
+          errorType: responseError.message.includes('timed out') ? 'ServerBusyError' : 'ResponseError'
+        })
+      };
+    }
+
+    // Parse the three code blocks with improved regex
     const htmlMatch = generatedHTML.match(/```html\s*([\s\S]*?)```/i);
     const cssMatch = generatedHTML.match(/```css\s*([\s\S]*?)```/i);
     const jsMatch = generatedHTML.match(/```javascript\s*([\s\S]*?)```/i);
@@ -257,6 +424,9 @@ ${js}
     // Generate title and description from prompt
     const title = prompt.length > 50 ? prompt.substring(0, 50) + '...' : prompt;
     const description = `Generated website for: ${prompt}`;
+    
+    // Clean up variables for memory management
+    generatedHTML = null;
 
     console.log('✅ Website generation completed successfully');
 
@@ -315,237 +485,6 @@ ${js}
         success: false,
         error: 'Failed to generate website',
         details,
-        errorType,
-        timestamp: new Date().toISOString()
-      })
-    };
-  }
-};
-
-    console.log('🚀 Starting content generation with optimized approach...');
-    let result;
-    
-    // Enhanced generation with progressive timeout and retry logic
-    let genResult;
-    
-    // Primary attempt with optimized timeout
-    try {
-      console.log('🎯 Primary generation attempt...');
-      genResult = await withTimeout(
-        model.generateContent(enhancedPrompt),
-        150000 // 2.5 minute timeout
-      );
-      console.log('✅ Primary generation succeeded');
-    } catch (primaryError) {
-      console.log('⚠️ Primary generation failed:', primaryError.message);
-      
-      // If primary fails, try with simplified prompt
-      const fallbackPrompt = `Create a website for: "${prompt}"
-
-Generate three separate code blocks:
-
-\`\`\`html
-<div>Your content here</div>
-\`\`\`
-
-\`\`\`css
-/* Your styles here */
-\`\`\`
-
-\`\`\`javascript
-// Your code here
-\`\`\`
-
-Return only the three code blocks above.`;
-
-      try {
-        console.log('� Attempting fallback generation...');
-        genResult = await withTimeout(
-          model.generateContent(fallbackPrompt),
-          90000 // 1.5 minute timeout for fallback
-        );
-        console.log('✅ Fallback generation succeeded');
-      } catch (fallbackError) {
-        console.error('❌ All generation attempts failed');
-        
-        // Check error types and return appropriate response
-        const lastError = fallbackError.message || primaryError.message;
-        
-        if (lastError.includes('timed out') || lastError.includes('timeout')) {
-          return {
-            statusCode: 502,
-            headers,
-            body: JSON.stringify({
-              success: false,
-              error: 'Request timeout',
-              details: 'The AI service is taking longer than expected. This usually happens during high traffic. Please try again in a few moments with a shorter description.',
-              errorType: 'TimeoutError'
-            })
-          };
-        }
-        
-        if (lastError.includes('rate limit') || lastError.includes('quota') || lastError.includes('429')) {
-          return {
-            statusCode: 429,
-            headers,
-            body: JSON.stringify({
-              success: false,
-              error: 'Service temporarily unavailable',
-              details: 'The AI service is currently experiencing high demand. Please wait 30 seconds and try again.',
-              errorType: 'RateLimitError'
-            })
-          };
-        }
-        
-        // Generic error
-        return {
-          statusCode: 502,
-          headers,
-          body: JSON.stringify({
-            success: false,
-            error: 'Service temporarily unavailable',
-            details: 'Please try again in a few moments. If the problem persists, try using a shorter, simpler description.',
-            errorType: 'ServiceError'
-          })
-        };
-      }
-    }
-    
-    // Assign the result for further processing
-    result = genResult;
-    
-    // Process the response with better error handling
-    let response, generatedHTML;
-    
-    try {
-      console.log('🔄 Processing AI response...');
-      response = await withTimeout(
-        result.response,
-        45000 // 45 second timeout for response processing
-      );
-      console.log('✅ Response processed successfully');
-      
-      // Extract text immediately to avoid memory issues
-      generatedHTML = response.text();
-      console.log('📄 Text extracted successfully', {
-        htmlLength: generatedHTML.length,
-        hasCodeBlocks: generatedHTML.includes('```'),
-        htmlBlockCount: (generatedHTML.match(/```html/gi) || []).length,
-        cssBlockCount: (generatedHTML.match(/```css/gi) || []).length,
-        jsBlockCount: (generatedHTML.match(/```javascript/gi) || []).length
-      });
-      
-      // Clean up AI objects immediately
-      result = null;
-      response = null;
-      
-      // Force garbage collection hint (Node.js specific)
-      if (global.gc) {
-        global.gc();
-      }
-      
-    } catch (responseError) {
-      console.error('❌ Response processing failed:', responseError);
-      
-      // Clean up on error
-      result = null;
-      response = null;
-      
-      return {
-        statusCode: 502,
-        headers,
-        body: JSON.stringify({
-          success: false,
-          error: 'Response processing failed',
-          details: responseError.message.includes('timed out') 
-            ? 'Server is temporarily busy processing your request. Please try again in a moment.' 
-            : 'Failed to process AI response. Please try again.',
-          errorType: responseError.message.includes('timed out') ? 'ServerBusyError' : 'ResponseError'
-        })
-      };
-    }
-
-    // Parse the three code blocks with improved regex
-    const htmlMatch = generatedHTML.match(/```html\s*([\s\S]*?)```/i);
-    const cssMatch = generatedHTML.match(/```css\s*([\s\S]*?)```/i);
-    const jsMatch = generatedHTML.match(/```javascript\s*([\s\S]*?)```/i);
-
-    console.log('🔍 Parsing results:', {
-      htmlFound: !!htmlMatch,
-      cssFound: !!cssMatch,
-      jsFound: !!jsMatch,
-      htmlLength: htmlMatch ? htmlMatch[1].trim().length : 0,
-      cssLength: cssMatch ? cssMatch[1].trim().length : 0,
-      jsLength: jsMatch ? jsMatch[1].trim().length : 0
-    });
-
-    const html = htmlMatch ? htmlMatch[1].trim() : '';
-    const css = cssMatch ? cssMatch[1].trim() : '';
-    const js = jsMatch ? jsMatch[1].trim() : '';
-
-    // Compose a full HTML file for preview (for backward compatibility)
-    const fullHtml = `<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"UTF-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no\">\n<title>Generated Website</title>\n<link href=\"https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Poppins:wght@100..900&family=Montserrat:wght@100..900&display=swap\" rel=\"stylesheet\">\n<link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css\">\n<style>\n* { box-sizing: border-box; }\nbody { margin: 0; padding: 0; overflow-x: hidden; }\n${css}\n</style>\n</head>\n<body>\n${html}\n<script>\n${js}\n</script>\n</body>\n</html>`;
-
-    // Provide fallback content if parsing failed
-    const finalHtml = html || '<div class="p-8 text-center">HTML content not generated properly</div>';
-    const finalCss = css || '/* CSS content not generated properly */\nbody { font-family: Arial, sans-serif; padding: 20px; }';
-    const finalJs = js || '// JavaScript content not generated properly\nconsole.log("JavaScript not generated");';
-    
-    // Generate title and description from prompt
-    const title = prompt.length > 50 ? prompt.substring(0, 50) + '...' : prompt;
-    const description = `Generated website for: ${prompt}`;
-    
-    // Clean up variables for memory management
-    result = null;
-    response = null;
-
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({
-        success: true,
-        data: {
-          html: fullHtml,
-          htmlOnly: finalHtml,
-          cssOnly: finalCss,
-          jsOnly: finalJs,
-          title: title,
-          description: description,
-          prompt: prompt,
-          generatedAt: new Date().toISOString()
-        }
-      })
-    };
-
-  } catch (error) {
-    console.error('💥 Error generating website:', {
-      message: error.message,
-      stack: error.stack,
-      name: error.name
-    });
-    
-    // Determine appropriate status code based on error
-    let statusCode = 500;
-    let errorType = error.name || 'UnknownError';
-    
-    if (error.message.includes('timed out') || error.message.includes('timeout')) {
-      statusCode = 502;
-      errorType = 'TimeoutError';
-    } else if (error.message.includes('rate limit') || error.message.includes('quota')) {
-      statusCode = 429;
-      errorType = 'RateLimitError';
-    } else if (error.message.includes('network') || error.message.includes('ENOTFOUND')) {
-      statusCode = 502;
-      errorType = 'NetworkError';
-    }
-    
-    return {
-      statusCode,
-      headers,
-      body: JSON.stringify({
-        success: false,
-        error: 'Failed to generate website',
-        details: error.message || 'Unknown error occurred',
         errorType,
         timestamp: new Date().toISOString()
       })
