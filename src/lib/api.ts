@@ -119,10 +119,65 @@ class ApiService {
   }
 
   async generateWebsite(data: GenerateWebsiteRequest): Promise<GenerateWebsiteResponse> {
-    return this.request<GenerateWebsiteResponse>('/generate-website', {
+    const response = await this.request<any>('/generate-website', {
       method: 'POST',
       body: JSON.stringify(data),
     });
+
+    // Check if response has the expected structure
+    if (response.success && response.data) {
+      const responseData = response.data;
+      
+      // If it's already in the correct format, return as is
+      if (responseData.htmlOnly !== undefined && responseData.cssOnly !== undefined && responseData.jsOnly !== undefined) {
+        return response;
+      }
+      
+      // If it's the new three-step format, extract components from the full HTML
+      if (responseData.html && !responseData.htmlOnly) {
+        console.log('🔧 Extracting HTML, CSS, JS components from full HTML response...');
+        
+        const fullHtml = responseData.html;
+        
+        // Extract CSS from <style> tags
+        const cssMatches = fullHtml.match(/<style[^>]*>([\s\S]*?)<\/style>/gi);
+        const cssOnly = cssMatches ? cssMatches.map(match => 
+          match.replace(/<\/?style[^>]*>/gi, '')
+        ).join('\n\n') : '';
+        
+        // Extract JS from <script> tags
+        const jsMatches = fullHtml.match(/<script[^>]*>([\s\S]*?)<\/script>/gi);
+        const jsOnly = jsMatches ? jsMatches.map(match => 
+          match.replace(/<\/?script[^>]*>/gi, '')
+        ).filter(script => script.trim() && !script.includes('src=')).join('\n\n') : '';
+        
+        // Extract HTML body content
+        const bodyMatch = fullHtml.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+        const htmlOnly = bodyMatch ? bodyMatch[1].trim() : '';
+        
+        console.log('✅ Extracted components:', {
+          htmlLength: htmlOnly.length,
+          cssLength: cssOnly.length,
+          jsLength: jsOnly.length
+        });
+        
+        return {
+          success: true,
+          data: {
+            html: fullHtml,
+            htmlOnly: htmlOnly,
+            cssOnly: cssOnly,
+            jsOnly: jsOnly,
+            title: responseData.title,
+            description: responseData.description,
+            prompt: responseData.prompt,
+            generatedAt: responseData.generatedAt
+          }
+        };
+      }
+    }
+    
+    return response;
   }
 
   async checkHealth(): Promise<HealthResponse> {
