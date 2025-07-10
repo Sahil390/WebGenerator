@@ -19,6 +19,22 @@ export interface GenerateWebsiteResponse {
     description?: string;
     prompt: string;
     generatedAt: string;
+    isComplete?: boolean;
+  };
+  error?: string;
+  details?: string;
+}
+
+export interface StepResponse {
+  success: boolean;
+  step: 'html' | 'styles' | 'functionality';
+  data: {
+    html: string;
+    title?: string;
+    description?: string;
+    prompt: string;
+    generatedAt: string;
+    isComplete?: boolean;
   };
   error?: string;
   details?: string;
@@ -50,8 +66,8 @@ class ApiService {
         'Content-Type': 'application/json',
         ...options.headers,
       },
-      // Set a reasonable timeout for the frontend request
-      signal: AbortSignal.timeout(320000), // 5 min 20 sec (20 sec buffer over backend)
+      // Set a reasonable timeout for each step (30 seconds total)
+      signal: AbortSignal.timeout(30000), // 30 seconds per step
     };
 
     try {
@@ -119,6 +135,88 @@ class ApiService {
   }
 
   async generateWebsite(data: GenerateWebsiteRequest): Promise<GenerateWebsiteResponse> {
+    console.log('🚀 Starting three-step website generation process...');
+    
+    try {
+      // Step 1: Generate HTML structure
+      console.log('📄 Step 1: Generating HTML structure...');
+      const htmlResponse = await this.request<StepResponse>('/generate-html', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+      
+      if (!htmlResponse.success) {
+        throw new Error(`HTML generation failed: ${htmlResponse.error}`);
+      }
+      
+      console.log('✅ Step 1 completed: HTML structure generated');
+      
+      // Step 2: Add CSS styling
+      console.log('🎨 Step 2: Adding CSS styling...');
+      const stylesResponse = await this.request<StepResponse>('/generate-styles', {
+        method: 'POST',
+        body: JSON.stringify({
+          prompt: data.prompt,
+          html: htmlResponse.data.html,
+          title: htmlResponse.data.title
+        }),
+      });
+      
+      if (!stylesResponse.success) {
+        throw new Error(`CSS styling failed: ${stylesResponse.error}`);
+      }
+      
+      console.log('✅ Step 2 completed: CSS styling added');
+      
+      // Step 3: Add JavaScript functionality
+      console.log('⚡ Step 3: Adding JavaScript functionality...');
+      const functionalityResponse = await this.request<StepResponse>('/generate-functionality', {
+        method: 'POST',
+        body: JSON.stringify({
+          prompt: data.prompt,
+          html: stylesResponse.data.html,
+          title: stylesResponse.data.title,
+          description: stylesResponse.data.description
+        }),
+      });
+      
+      if (!functionalityResponse.success) {
+        throw new Error(`JavaScript functionality failed: ${functionalityResponse.error}`);
+      }
+      
+      console.log('✅ Step 3 completed: JavaScript functionality added');
+      console.log('🎉 Three-step website generation completed successfully!');
+      
+      // Extract separate components for compatibility
+      const finalHtml = functionalityResponse.data.html;
+      const htmlMatch = finalHtml.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+      const cssMatch = finalHtml.match(/<style[^>]*>([\s\S]*?)<\/style>/i);
+      const jsMatch = finalHtml.match(/<script[^>]*>([\s\S]*?)<\/script>/i);
+      
+      return {
+        success: true,
+        data: {
+          html: finalHtml,
+          htmlOnly: htmlMatch ? htmlMatch[1] : '',
+          cssOnly: cssMatch ? cssMatch[1] : '',
+          jsOnly: jsMatch ? jsMatch[1] : '',
+          title: functionalityResponse.data.title,
+          description: functionalityResponse.data.description,
+          prompt: data.prompt,
+          generatedAt: functionalityResponse.data.generatedAt,
+          isComplete: true
+        }
+      };
+      
+    } catch (error) {
+      console.error('💥 Three-step generation failed:', error);
+      throw error;
+    }
+  }
+
+  // Fallback method using the original single function approach
+  async generateWebsiteFallback(data: GenerateWebsiteRequest): Promise<GenerateWebsiteResponse> {
+    console.log('🔄 Using fallback single-step generation...');
     return this.request<GenerateWebsiteResponse>('/generate-website', {
       method: 'POST',
       body: JSON.stringify(data),
