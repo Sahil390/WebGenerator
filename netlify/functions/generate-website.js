@@ -74,6 +74,7 @@ exports.handler = async (event, context) => {
 
   try {
     console.log('🔥 Received website generation request');
+    console.log('GEMINI_API_KEY length:', process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.length : 'Not set');
     console.log('Environment check:', {
       hasApiKey: !!process.env.GEMINI_API_KEY,
       apiKeyLength: process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.length : 0,
