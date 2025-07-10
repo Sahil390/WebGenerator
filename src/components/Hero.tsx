@@ -2,18 +2,14 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Play, Sparkles, X } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 const Hero = () => {
   const [isVideoOpen, setIsVideoOpen] = useState(false);
+  const navigate = useNavigate();
   
-  const scrollToSection = (sectionId: string) => {
-    const element = document.getElementById(sectionId);
-    if (element) {
-      element.scrollIntoView({ 
-        behavior: 'smooth',
-        block: 'start'
-      });
-    }
+  const handleGetStarted = () => {
+    navigate('/generator');
   };
 
   const openVideo = () => {
@@ -92,7 +88,7 @@ const Hero = () => {
           {/* Enhanced CTA Buttons with improved styling */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-8 mb-32 animate-fade-in-up-delayed relative z-10">
             <Button 
-              onClick={() => scrollToSection('generator')}
+              onClick={handleGetStarted}
               size="lg" 
               className="bg-gradient-to-r from-black/90 via-gray-800/90 to-black/90 dark:from-white/90 dark:via-gray-200/90 dark:to-white/90 hover:from-gray-800/95 hover:via-black/95 hover:to-gray-800/95 dark:hover:from-gray-200/95 dark:hover:via-white/95 dark:hover:to-gray-200/95 text-white dark:text-black px-12 py-6 text-xl font-bold rounded-2xl hover-scale group transform hover:-translate-y-2 shadow-2xl hover:shadow-3xl transition-all duration-500 border-2 border-transparent hover:border-gray-300 dark:hover:border-gray-700 backdrop-blur-sm"
             >

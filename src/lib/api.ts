@@ -77,7 +77,12 @@ class ApiService {
         } else if (response.status === 429) {
           errorMessage = 'The AI service is experiencing high demand. Please wait 30 seconds and try again.';
         } else if (response.status === 500) {
-          errorMessage = 'Internal server error. Please try again or contact support if the issue persists.';
+          // Check if it's a Google AI overloaded error
+          if (errorData.error && errorData.error.includes('overloaded')) {
+            errorMessage = 'The AI service is currently overloaded due to high demand. Please wait 30-60 seconds and try again. You might also try a shorter, simpler prompt.';
+          } else {
+            errorMessage = 'Internal server error. Please try again or contact support if the issue persists.';
+          }
         } else if (response.status === 504) {
           errorMessage = 'The request took too long to complete. Please try again with a shorter, simpler description.';
         }
@@ -116,10 +121,18 @@ class ApiService {
   }
 
   async generateWebsite(data: GenerateWebsiteRequest): Promise<GenerateWebsiteResponse> {
-    return this.request<GenerateWebsiteResponse>('/generate-website', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
+    try {
+      return await this.request<GenerateWebsiteResponse>('/generate-website', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    } catch (error: any) {
+      // Check if it's a connection error and provide helpful message
+      if (error.message.includes('ERR_CONNECTION_REFUSED') || error.message.includes('Failed to fetch')) {
+        throw new Error('Unable to connect to the AI service. Please make sure the backend server is running and properly configured with API keys.');
+      }
+      throw error;
+    }
   }
 
   async checkHealth(): Promise<HealthResponse> {

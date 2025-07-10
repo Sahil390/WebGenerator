@@ -94,6 +94,14 @@ const GeneratorSection = ({ prompt, setPrompt, isGenerating, onGenerate }: Gener
               <strong>Pro tip:</strong> The more detailed your description, the better the result! Include style preferences, layout ideas, and specific features you want.
             </p>
           </div>
+
+          {/* AI Service Status Notice */}
+          <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+            <p className="text-sm text-amber-700 dark:text-amber-300 flex items-center">
+              <Zap className="w-4 h-4 mr-2" />
+              <strong>Note:</strong> If you encounter "overloaded" errors, the AI service is busy. Try again in 1-2 minutes or use a shorter, simpler prompt.
+            </p>
+          </div>
           
           <Button 
             onClick={onGenerate}
