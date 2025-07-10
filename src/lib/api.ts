@@ -1,8 +1,16 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || (
-  import.meta.env.PROD 
+  import.meta.env.MODE === 'production'
     ? '/api'  // Use relative path in production (Netlify)
     : 'http://localhost:3001/api'  // Use localhost in development
 );
+
+console.log('🔧 Environment check:', {
+  VITE_API_URL: import.meta.env.VITE_API_URL,
+  PROD: import.meta.env.PROD,
+  DEV: import.meta.env.DEV,
+  MODE: import.meta.env.MODE,
+  API_BASE_URL
+});
 
 export interface GenerateWebsiteRequest {
   prompt: string;
