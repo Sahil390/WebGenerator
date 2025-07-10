@@ -143,10 +143,10 @@ No explanations, just the functional HTML code.
 
     console.log('🚀 Generating JavaScript functionality...');
 
-    // Generate functional HTML with timeout
+    // Generate functional HTML with timeout (increased to 15 seconds)
     const response = await withTimeout(
       model.generateContent(jsPrompt),
-      8000 // 8 second timeout for this step
+      15000 // 15 second timeout for this step
     );
 
     const result = await response.response;

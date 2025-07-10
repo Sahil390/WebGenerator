@@ -66,8 +66,8 @@ class ApiService {
         'Content-Type': 'application/json',
         ...options.headers,
       },
-      // Set a reasonable timeout for each step (30 seconds total)
-      signal: AbortSignal.timeout(30000), // 30 seconds per step
+      // Set a reasonable timeout for each step (60 seconds total to accommodate retries)
+      signal: AbortSignal.timeout(60000), // 60 seconds per step
     };
 
     try {

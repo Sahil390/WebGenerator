@@ -1,5 +1,23 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
+// Helper function for retry logic
+const retryWithDelay = async (fn, maxRetries = 2, delay = 1000) => {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`Attempt ${attempt}/${maxRetries}...`);
+      return await fn();
+    } catch (error) {
+      console.log(`Attempt ${attempt} failed:`, error.message);
+      if (attempt === maxRetries) {
+        throw error; // Re-throw on final attempt
+      }
+      console.log(`Waiting ${delay}ms before retry...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      delay *= 1.5; // Exponential backoff
+    }
+  }
+};
+
 // Helper function to create timeout promise
 const withTimeout = (promise, timeoutMs) => {
   return Promise.race([
@@ -101,7 +119,7 @@ exports.handler = async (event, context) => {
         temperature: 0.7,
         topK: 40,
         topP: 0.95,
-        maxOutputTokens: 2048,
+        maxOutputTokens: 1024, // Reduced for faster generation
       },
     });
 
@@ -109,27 +127,26 @@ exports.handler = async (event, context) => {
 
     // Simplified prompt for HTML structure only
     const htmlPrompt = `
-Based on this request: "${prompt}"
+Create basic HTML structure for: "${prompt}"
 
-Create ONLY the HTML structure for this website. Focus on:
-- Semantic HTML5 structure
-- Proper headings hierarchy
-- Content sections and layout
-- Basic form elements if needed
-- NO CSS styling (just basic HTML)
-- NO JavaScript functionality
-- Use placeholder content where appropriate
+Requirements:
+- Simple, semantic HTML5
+- Basic structure only (no CSS, no JavaScript)
+- Use appropriate headings and content sections
+- Keep it minimal and fast to generate
 
-Respond with clean HTML code only, no explanations or markdown.
+Return only clean HTML code.
 `;
 
     console.log('🚀 Generating HTML structure...');
 
-    // Generate HTML with timeout
-    const response = await withTimeout(
-      model.generateContent(htmlPrompt),
-      8000 // 8 second timeout for this step
-    );
+    // Generate HTML with retry logic and timeout
+    const response = await retryWithDelay(async () => {
+      return await withTimeout(
+        model.generateContent(htmlPrompt),
+        15000 // 15 second timeout for this step
+      );
+    }, 2); // 2 retry attempts
 
     const result = await response.response;
     let htmlContent = result.text();

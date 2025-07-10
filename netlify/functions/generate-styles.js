@@ -138,10 +138,10 @@ No explanations, just the styled HTML code.
 
     console.log('🚀 Generating CSS styling...');
 
-    // Generate styled HTML with timeout
+    // Generate styled HTML with timeout (increased to 15 seconds)
     const response = await withTimeout(
       model.generateContent(cssPrompt),
-      8000 // 8 second timeout for this step
+      15000 // 15 second timeout for this step
     );
 
     const result = await response.response;
