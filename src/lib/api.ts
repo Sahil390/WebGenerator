@@ -14,6 +14,7 @@ console.log('🔧 Environment check:', {
 
 export interface GenerateWebsiteRequest {
   prompt: string;
+  userApiKey?: string;
 }
 
 export interface GenerateWebsiteResponse {
@@ -130,9 +131,17 @@ class ApiService {
 
   async generateWebsite(data: GenerateWebsiteRequest): Promise<GenerateWebsiteResponse> {
     try {
+      const headers: Record<string, string> = {};
+      
+      // If user provided their own API key, send it in headers
+      if (data.userApiKey) {
+        headers['X-User-API-Key'] = data.userApiKey;
+      }
+      
       return await this.request<GenerateWebsiteResponse>('/generate-website', {
         method: 'POST',
-        body: JSON.stringify(data),
+        headers,
+        body: JSON.stringify({ prompt: data.prompt }),
       });
     } catch (error: any) {
       // Check if it's a connection error and provide helpful message

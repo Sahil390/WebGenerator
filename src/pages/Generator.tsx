@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Wand2, Loader2, Sparkles, Send, Eye, Download, Code, Monitor, Edit3, Smartphone, Tablet, Laptop } from "lucide-react";
+import { ArrowLeft, Wand2, Loader2, Sparkles, Send, Eye, Download, Code, Monitor, Edit3, Smartphone, Tablet, Laptop, Key, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import apiService, { GenerateWebsiteResponse } from "@/lib/api";
@@ -14,6 +14,9 @@ const Generator = () => {
   const [aspectRatio, setAspectRatio] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
   const [progress, setProgress] = useState(0);
   const [progressText, setProgressText] = useState("Initializing...");
+  const [showApiKeyInput, setShowApiKeyInput] = useState(false);
+  const [userApiKey, setUserApiKey] = useState("");
+  const [isQuotaExceeded, setIsQuotaExceeded] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -22,6 +25,16 @@ const Generator = () => {
       toast({
         title: "Error",
         description: "Please enter a description for your website",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Check if quota exceeded and no valid API key provided
+    if (isQuotaExceeded && (!userApiKey || !userApiKey.startsWith('AIza'))) {
+      toast({
+        title: "API Key Required",
+        description: "Please enter a valid Gemini API key to continue generating websites.",
         variant: "destructive",
       });
       return;
@@ -53,13 +66,17 @@ const Generator = () => {
     }, 800);
     
     try {
-      const response = await apiService.generateWebsite({ prompt });
+      const response = await apiService.generateWebsite({ 
+        prompt,
+        userApiKey: userApiKey || undefined 
+      });
       
       clearInterval(progressInterval);
       setProgress(100);
       setProgressText("Complete!");
       
       if (response.success && response.data) {
+        setIsQuotaExceeded(false); // Reset quota exceeded state on success
         setTimeout(() => {
           setGeneratedSite(response.data);
           toast({
@@ -90,17 +107,20 @@ const Generator = () => {
           }
         } else if (errorStatus === 429) {
           title = "API Quota Exceeded";
-          description = "The daily API limit has been reached. Please try again tomorrow or upgrade to a paid plan for unlimited generations.";
+          description = "The daily API limit has been reached. You can use your own API key to continue.";
+          setIsQuotaExceeded(true);
         } else if (errorStatus === 500) {
           title = "AI Service Overloaded";
           if (error.message.includes('overloaded') || error.message.includes('quota')) {
-            description = "The AI service quota has been exceeded. Please try again later or consider upgrading your plan.";
+            description = "The AI service quota has been exceeded. You can use your own API key to continue.";
+            setIsQuotaExceeded(true);
           } else {
             description = "Internal server error. Please try again later.";
           }
         } else if (error.message.includes('quota') || error.message.includes('429')) {
           title = "Daily Limit Reached";
-          description = "You've reached the daily generation limit. The quota resets every 24 hours, or you can upgrade for unlimited access.";
+          description = "You've reached the daily generation limit. Use your own API key to continue generating.";
+          setIsQuotaExceeded(true);
         } else {
           description = error.message;
         }
@@ -236,6 +256,77 @@ const Generator = () => {
             {!isGenerating && !generatedSite ? (
               /* Input Section - Initial State */
               <div className="max-w-4xl mx-auto">
+                
+                {/* API Key Input - Show when quota exceeded */}
+                {isQuotaExceeded && (
+                  <div className="mb-6 animate-fade-in-up">
+                    <div className="bg-orange-50/80 dark:bg-orange-950/50 backdrop-blur-xl rounded-2xl p-6 border border-orange-200/50 dark:border-orange-800/50 shadow-xl">
+                      <div className="flex items-start space-x-4">
+                        <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                          <AlertTriangle className="w-6 h-6 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-lg font-bold text-orange-900 dark:text-orange-100 mb-2">
+                            Daily Limit Reached
+                          </h3>
+                          <p className="text-sm text-orange-700 dark:text-orange-300 mb-4">
+                            The free daily quota has been exceeded. You can continue by using your own Gemini API key.
+                          </p>
+                          
+                          {/* API Key Input */}
+                          <div className="space-y-3">
+                            <div className="relative">
+                              <Key className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-500" />
+                              <input
+                                type="password"
+                                placeholder="Enter your Gemini API key (AIza...)"
+                                value={userApiKey}
+                                onChange={(e) => setUserApiKey(e.target.value)}
+                                className="w-full pl-10 pr-4 py-3 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border border-gray-200/50 dark:border-gray-600/50 focus:border-orange-400/50 rounded-xl text-sm placeholder:text-gray-500 dark:placeholder:text-gray-400 transition-all duration-300 focus:shadow-lg"
+                                maxLength={100}
+                              />
+                              {userApiKey && !userApiKey.startsWith('AIza') && (
+                                <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                  <AlertTriangle className="w-4 h-4 text-orange-500" />
+                                </div>
+                              )}
+                            </div>
+                            
+                            {userApiKey && !userApiKey.startsWith('AIza') && (
+                              <p className="text-xs text-orange-600 dark:text-orange-400">
+                                API key should start with "AIza"
+                              </p>
+                            )}
+                            
+                            <div className="flex items-center justify-between">
+                              <a
+                                href="https://aistudio.google.com/"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-orange-600 dark:text-orange-400 hover:text-orange-700 dark:hover:text-orange-300 underline transition-colors"
+                              >
+                                Get your free API key →
+                              </a>
+                              
+                              <Button
+                                onClick={() => {
+                                  setIsQuotaExceeded(false);
+                                  setUserApiKey("");
+                                }}
+                                variant="ghost"
+                                size="sm"
+                                className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Input Section */}
                 <div className="space-y-6 animate-fade-in-up">
                   <div className="group bg-white/80 dark:bg-gray-800/80 backdrop-blur-xl rounded-2xl p-8 shadow-2xl border border-white/20 dark:border-gray-700/30 hover:shadow-3xl transition-all duration-500 hover:scale-[1.02] hover:-translate-y-2 transform">

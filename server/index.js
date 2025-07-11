@@ -53,6 +53,7 @@ app.post('/api/generate-website', async (req, res) => {
   
   try {
     const { prompt } = req.body;
+    const userApiKey = req.headers['x-user-api-key'];
     
     if (!prompt || prompt.trim().length === 0) {
       return res.status(400).json({ 
@@ -60,11 +61,19 @@ app.post('/api/generate-website', async (req, res) => {
       });
     }
 
-    if (!process.env.GEMINI_API_KEY) {
+    // Determine which API key to use
+    const apiKey = userApiKey || process.env.GEMINI_API_KEY;
+    
+    if (!apiKey) {
       return res.status(500).json({ 
-        error: 'Gemini API key not configured' 
+        error: 'No API key available. Please provide your own Gemini API key.' 
       });
     }
+
+    console.log('🔑 Using API key:', userApiKey ? 'User provided' : 'Server default');
+    
+    // Initialize Gemini AI with the appropriate API key
+    const currentGenAI = new GoogleGenerativeAI(apiKey);
 
     // Ultra-specific prompt that forces complete HTML/CSS generation
     const enhancedPrompt = `
@@ -170,8 +179,8 @@ IMPORTANT RULES:
 Create a PROFESSIONAL, PRODUCTION-READY website that looks like it was built by an expert web developer. The website should be complete, functional, and visually appealing.
 `;
 
-    // Use the correct model name
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // Use the correct model name with the current API key
+    const model = currentGenAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     
     const result = await model.generateContent(enhancedPrompt);
     const response = await result.response;
