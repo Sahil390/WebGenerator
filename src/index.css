@@ -264,6 +264,30 @@ All colors MUST be HSL.
     }
   }
 
+  /* Enhanced progress bar animation for loading */
+  .animate-progress-bar {
+    animation: progressBar 2s ease-in-out infinite;
+    will-change: width;
+  }
+
+  @keyframes progressBar {
+    0% {
+      width: 0%;
+    }
+    25% {
+      width: 40%;
+    }
+    50% {
+      width: 75%;
+    }
+    75% {
+      width: 90%;
+    }
+    100% {
+      width: 95%;
+    }
+  }
+
   /* Enhanced gradient text animation */
   .animate-gradient {
     background: linear-gradient(-45deg, #000000, #434343, #000000, #666666, #000000);
@@ -452,6 +476,85 @@ All colors MUST be HSL.
 .dark ::selection {
   background: rgba(255, 255, 255, 0.1);
   color: inherit;
+}
+
+/* Enhanced animations for generator page */
+.animate-slide-in-right {
+  animation: slideInRight 0.8s ease-out;
+  will-change: transform, opacity;
+}
+
+.animate-gradient-x {
+  animation: gradientX 3s ease infinite;
+  background-size: 400% 400%;
+}
+
+.animate-gradient-shift {
+  animation: gradientShift 4s ease-in-out infinite;
+  background-size: 300% 300%;
+}
+
+.animate-subtle-move {
+  animation: subtleMove 20s ease-in-out infinite;
+}
+
+/* Animation delays */
+.animation-delay-1000 {
+  animation-delay: 1s;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes gradientX {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes gradientShift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  25% {
+    background-position: 100% 0%;
+  }
+  50% {
+    background-position: 100% 100%;
+  }
+  75% {
+    background-position: 0% 100%;
+  }
+}
+
+@keyframes subtleMove {
+  0%, 100% {
+    transform: translateX(0) translateY(0);
+  }
+  25% {
+    transform: translateX(5px) translateY(-5px);
+  }
+  50% {
+    transform: translateX(-3px) translateY(3px);
+  }
+  75% {
+    transform: translateX(3px) translateY(5px);
+  }
 }
 
 /* Focus improvements */

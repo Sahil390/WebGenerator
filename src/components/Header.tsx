@@ -2,9 +2,12 @@
 import { Button } from "@/components/ui/button";
 import { Sparkles, Moon, Sun } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const Header = () => {
   const [isDark, setIsDark] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
@@ -30,6 +33,10 @@ const Header = () => {
         block: 'start'
       });
     }
+  };
+
+  const handleGetStarted = () => {
+    navigate('/generator');
   };
 
   return (
@@ -73,7 +80,7 @@ const Header = () => {
               {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
             </Button>
             <Button 
-              onClick={() => scrollToSection('generator')}
+              onClick={handleGetStarted}
               className="bg-gradient-to-r from-black to-gray-800 dark:from-white dark:to-gray-200 hover:from-gray-800 hover:to-black dark:hover:from-gray-200 dark:hover:to-white text-white dark:text-black px-8 py-3 transform hover:scale-105 hover:-translate-y-1 transition-all duration-300 shadow-lg hover:shadow-2xl rounded-xl font-semibold"
             >
               Get Started
