@@ -148,7 +148,7 @@ const Hero = () => {
             <div className="relative bg-black rounded-2xl overflow-hidden shadow-2xl border border-gray-800">
               <div className="relative aspect-video">
                 <iframe
-                  src="https://www.youtube.com/embed/2I02SwXQGa8?autoplay=1&rel=0&modestbranding=1"
+                  src="https://www.youtube.com/embed/1AhoJ7mqbzs?autoplay=1&rel=0&modestbranding=1"
                   title="WebGenerator Demo"
                   className="w-full h-full"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
