@@ -139,11 +139,24 @@ const AboutUs = () => {
           <h3 className="text-2xl font-bold mb-4 text-black dark:text-white">
             Our Story
           </h3>
-          <p className="text-gray-700 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-gray-700 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed mb-6">
             We created this AI-powered website generator during a hackathon with the vision of democratizing web development. 
             Our goal was to make beautiful, functional websites accessible to everyone, regardless of their technical background. 
             By combining the power of AI with modern web technologies, we've built a tool that can transform ideas into reality with just a few words.
           </p>
+          
+          {/* GitHub Repository Link */}
+          <div className="mb-6">
+            <a 
+              href="https://github.com/Sahil390/WebGenerator"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center space-x-2 bg-black dark:bg-white text-white dark:text-black px-6 py-3 rounded-full hover:bg-gray-800 dark:hover:bg-gray-200 transition-all duration-300 hover:scale-105 group font-medium"
+            >
+              <Github className="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" />
+              <span>View Source Code</span>
+            </a>
+          </div>
           <div className="mt-6 flex items-center justify-center space-x-6 text-sm text-gray-600 dark:text-gray-400">
             <div className="flex items-center space-x-2">
               <Code className="w-4 h-4" />
