@@ -89,15 +89,18 @@ const Generator = () => {
             description = "Server is temporarily unavailable. Please try again in a moment.";
           }
         } else if (errorStatus === 429) {
-          title = "Too Many Requests";
-          description = "Please wait a moment before trying again.";
+          title = "API Quota Exceeded";
+          description = "The daily API limit has been reached. Please try again tomorrow or upgrade to a paid plan for unlimited generations.";
         } else if (errorStatus === 500) {
           title = "AI Service Overloaded";
-          if (error.message.includes('overloaded')) {
-            description = "The AI service is currently experiencing high demand. Please wait 1-2 minutes and try again with a shorter prompt.";
+          if (error.message.includes('overloaded') || error.message.includes('quota')) {
+            description = "The AI service quota has been exceeded. Please try again later or consider upgrading your plan.";
           } else {
             description = "Internal server error. Please try again later.";
           }
+        } else if (error.message.includes('quota') || error.message.includes('429')) {
+          title = "Daily Limit Reached";
+          description = "You've reached the daily generation limit. The quota resets every 24 hours, or you can upgrade for unlimited access.";
         } else {
           description = error.message;
         }
@@ -107,6 +110,7 @@ const Generator = () => {
         title,
         description,
         variant: "destructive",
+        duration: 8000, // Show longer for quota errors
       });
     } finally {
       setIsGenerating(false);
